@@ -1,0 +1,20 @@
+# PlatformIO build artifacts
+.pio/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Notebooks checkpoints
+.ipynb_checkpoints/
+
+# Editor / local state
+.kilo/
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
