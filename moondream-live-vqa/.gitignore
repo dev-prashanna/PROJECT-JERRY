@@ -1,0 +1,25 @@
+# Local secrets / machine-specific configuration
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+
+# Logs and generated artifacts
+logs/
+outputs/
+*.log
+
+# Model weights are shared with the parent workspace and are never committed
+../models/
+*.safetensors
+*.pth
+*.gguf
+
+# Editor / OS
+.idea/
+.vscode/
+.DS_Store

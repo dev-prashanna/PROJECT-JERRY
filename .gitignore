@@ -3,18 +3,49 @@
 
 # Python
 __pycache__/
+**/__pycache__/
 *.py[cod]
 .venv/
 venv/
-
-# Notebooks checkpoints
+.pytest_cache/
+**/.pytest_cache/
+.mypy_cache/
+.ruff_cache/
 .ipynb_checkpoints/
+notebooks/.ipynb_checkpoints/
+
+# Secrets — never commit
+.env
+.env.*
+!.env.example
+**/.env
+**/.env.local
+**/.env.*.local
+
+# Logs, caches and generated artifacts
+logs/
+*.log
+reports/
+benchmarks/*.json
+outputs/
+
+# Local model weights (too big for git)
+models/
+*.safetensors
+*.gguf
+*.pth
+*.onnx
+*.bin
+
+# Stray pip console-log files ("pip install x > 0.9.2")
+=[0-9]*
+
+# Local WiFi credentials (ESP32 firmware)
+esp32-cam-streamer/include/secrets.h
 
 # Editor / local state
 .kilo/
 .vscode/
 .idea/
-
-# OS
 .DS_Store
 Thumbs.db

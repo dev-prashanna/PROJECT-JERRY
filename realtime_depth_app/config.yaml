@@ -1,0 +1,79 @@
+# Real-Time Depth Application Configuration
+# All values are validated at startup; invalid values produce a clear error.
+
+source:
+  # "camera" uses a webcam index. Any other string is treated as a video/image path.
+  type: camera
+  index: 0
+  path: null
+  width: 640
+  height: 480
+  fps: 30
+  buffer_size: 1          # keep the capture queue tiny -> latest-frame strategy
+
+camera_reconnect:
+  enabled: true
+  interval_s: 2.0
+  max_failures: 30
+
+model:
+  # Local Hugging Face repo id (already downloaded in ~/.cache/huggingface). Never re-downloaded
+  # when local_files_only is true.
+  repo_id: depth-anything/Depth-Anything-V2-Small-hf
+  local_dir: null          # optional explicit local checkpoint directory
+  local_files_only: true
+  input_size: 518          # model input resolution, must be a multiple of 14
+  precision: fp32          # fp32 | fp16 | bf16 | autocast_fp16 | autocast_bf16
+  device: auto             # auto | cuda | cpu
+  warmup_iters: 3
+  sync_cuda_timing: true   # true = accurate latency (CUDA events/sync), false = higher reported throughput
+
+depth:
+  # Checkpoint convention. "auto" is read from the checkpoint config (relative/metric).
+  estimation_type: auto
+  smoothing:
+    enabled: true
+    alpha: 0.45            # exponential moving average, 0<alpha<=1 (higher = more responsive)
+    median_window: 1       # temporal median window in frames (1 = disabled)
+  visualization:
+    colormap: TURBO        # TURBO | JET | INFERNO | MAGMA | VIRIDIS | CIVIDIS | BONE | PARULA
+    grayscale: false
+    range_mode: auto       # auto (2-98 percentile, smoothed) | fixed
+    range_fixed: [0.0, 1.0]
+    range_smooth: 0.15     # EMA factor for auto range, reduces flicker
+
+measurement:
+  region_size: 7           # odd; neighborhood used for the median estimate
+  max_points: 8
+  show_center: true
+  point_smoothing: 0.5     # EMA on the selected point value, 0 disables
+
+calibration:
+  profile: calibration_data/profile.json
+  min_range_m: 0.3         # outside the fitted range we flag values as unreliable
+  max_range_m: 15.0
+  warn_extrapolation: true
+
+geometry:
+  intrinsics: calibration_data/intrinsics.json   # optional, produced by tools/calibrate_intrinsics.py
+  undistort: false
+
+anchor:
+  # Optional ArUco scale anchor (Approach C).
+  enabled: false
+  marker_length_m: 0.12
+  dictionary: DICT_4X4_50
+  validate_only: true      # true: only report geometric marker distance vs depth estimate
+
+display:
+  window_name: "Depth Anything V2 - Live"
+  window_scale: 1.0
+  show_perf: true
+  show_legend: true
+  screenshot_dir: outputs
+  depth_age_warning_ms: 250
+
+runtime:
+  frame_skip: 1            # run depth on every Nth captured frame (1 = every frame)
+  headless_frames: 0       # >0: run without GUI for N frames and write a report
+  debug: false

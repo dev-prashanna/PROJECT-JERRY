@@ -1,0 +1,22 @@
+PROJECT JERRY
+=============
+
+Planning to build a pet robot capable of understanding and learning the
+environment around it like a lively creature.
+
+A full-stack robotics workspace: ESP32 firmware for the body (camera
+streaming, motor drive, ultrasonics, servos) and a local-first Python
+perception and dialogue brain (Whisper STT, LLM intent routing,
+Moondream-2 VLM, Depth Anything V2 monocular depth, Kokoro-82M TTS)
+orchestrated by a bounded state machine and presented through a PySide6
+dashboard.
+
+Short description (for the GitHub "About" field, 350 char max):
+
+    Planning to build a pet robot that understands and learns its
+    environment like a lively creature. ESP32 firmware for the body;
+    local-first Python brain with Whisper STT, LLM routing, Moondream-2
+    vision, Depth Anything V2 depth and Kokoro TTS. See README.md.
+
+Tags: robotics, esp32, voice-assistant, computer-vision, depth-estimation,
+multimodal-ai, whisper, moondream, kokoro, python, cpp

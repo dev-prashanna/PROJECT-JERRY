@@ -2,19 +2,21 @@
 """ESP32-CAM MJPEG reader built for OpenCV / neural-network pipelines.
 
 The board (src/main.cpp) joins your WiFi as a station and serves MJPEG on
-http://esp32cam.local/stream (mDNS) or http://<ip>/stream.
+http://esp32cam.local:81/stream (mDNS) or http://<ip>:81/stream.
+/capture and /status live on port 80 — the stream owns port 81 so it can
+never block them.
 
-Streaming defaults to QVGA (320x240 @ ~24 fps) — measured on this hardware:
-the sensor cannot hold a usable frame rate at VGA (6-8 fps), and low latency
-matters more than pixel count for a control loop. Still captures stay at VGA.
-Override any time with --size hvga|vga or ?size= on the URL.
+Streaming defaults to HD (1280x720). The firmware auto-tunes JPEG quality toward
+20 fps on the wire (actual speed depends on light and WiFi), resolution
+stays at HD so NN/VLM inputs keep their detail. Override any time with
+--size svga|vga or ?size= / ?quality= on the URL.
 
 Feed frames straight into a model:
 
     from stream import ESP32Cam
 
-    with ESP32Cam() as cam:
-        for frame in cam.frames():          # numpy BGR, uint8, 240x320x3
+    with ESP32Cam(rgb=True) as cam:          # RGB for torch/onnx models
+        for frame in cam.frames():            # numpy uint8, 720x1280x3
             result = model(frame)
 
 Or grab the newest frame on demand:
@@ -27,12 +29,13 @@ Or grab the newest frame on demand:
 CLI:
     python3 stream.py stream                # OpenCV preview window
     python3 stream.py stream --no-display   # headless, just stats
-    python3 stream.py stream --size hvga    # 480x320 @ ~13fps
-    python3 stream.py capture               # save one VGA JPEG
+    python3 stream.py stream --size svga    # 800x600 if WiFi is congested
+    python3 stream.py capture               # save one JPEG still
     python3 stream.py flash                 # build + upload firmware
 """
 
 import argparse
+import http.client
 import socket
 import subprocess
 import sys
@@ -46,14 +49,14 @@ import cv2
 import numpy as np
 
 DEFAULT_HOST = "esp32cam.local"
-DEFAULT_SIZE = "qvga"  # 320x240 @ ~24fps — best latency/fps for robotics
-DEFAULT_URL = f"http://{DEFAULT_HOST}/stream?size={DEFAULT_SIZE}"
-CAPTURE_URL = f"http://{DEFAULT_HOST}/capture"
+DEFAULT_SIZE = "hd"  # 1280x720 — firmware auto-tunes quality to keep fps smooth
+DEFAULT_URL = f"http://{DEFAULT_HOST}:81/stream?size={DEFAULT_SIZE}"
+CAPTURE_URL = f"http://{DEFAULT_HOST}:80/capture"
 
 ENV = "esp32cam"
 CONNECT_TIMEOUT = 5.0
 READ_TIMEOUT = 10.0
-MAX_FRAME = 131072
+MAX_FRAME = 1048576  # HD frames at high quality can pass 128KB
 RECV_SIZE = 65536
 
 __all__ = ["ESP32Cam", "DEFAULT_URL", "CAPTURE_URL", "DEFAULT_SIZE"]
@@ -66,7 +69,7 @@ class ESP32Cam:
     i.e. exactly what ``cv2`` and most model runtimes expect.
     """
 
-    def __init__(self, url=DEFAULT_URL):
+    def __init__(self, url=DEFAULT_URL, rgb=False):
         parsed = urlparse(url if "://" in url else "http://" + url)
         if parsed.scheme != "http":
             raise ValueError(
@@ -80,8 +83,11 @@ class ESP32Cam:
         self.path = parsed.path or "/stream"
         if parsed.query:
             self.path += "?" + parsed.query
+        self.rgb = rgb  # torch/onnx want RGB; OpenCV default is BGR
 
         self._sock = None
+        self._response = None
+        self._stop_event = threading.Event()
         self._buf = b""
         self._cond = threading.Condition()
         self._frame = None
@@ -105,6 +111,13 @@ class ESP32Cam:
     def start(self):
         if self._running:
             return self
+        if self._thread and self._thread.is_alive():
+            raise RuntimeError("previous reader is still stopping")
+        self._stop_event.clear()
+        with self._cond:
+            self._frame = None
+        self.fps = 0.0
+        self._frame_count = 0
         self._connect()
         self._running = True
         self._thread = threading.Thread(target=self._reader_loop, daemon=True)
@@ -113,10 +126,14 @@ class ESP32Cam:
 
     def stop(self):
         self._running = False
+        self._stop_event.set()
+        with self._cond:
+            self._cond.notify_all()
         self._close_socket()
         if self._thread and self._thread.is_alive():
             self._thread.join(timeout=2.0)
-        self._thread = None
+        if self._thread and not self._thread.is_alive():
+            self._thread = None
 
     def __enter__(self):
         return self.start()
@@ -139,13 +156,13 @@ class ESP32Cam:
         ``after=None`` waits for the first frame; pass a previously returned
         frame to wait for the *next* one. Returns None on timeout.
         """
-        deadline = time.time() + timeout if timeout else None
+        deadline = time.monotonic() + timeout if timeout is not None else None
         with self._cond:
             while self._running:
                 frame = self._frame
                 if frame is not None and frame is not after:
                     return frame
-                remaining = None if deadline is None else deadline - time.time()
+                remaining = None if deadline is None else deadline - time.monotonic()
                 if remaining is not None and remaining <= 0:
                     return None
                 self._cond.wait(remaining if remaining is not None else 1.0)
@@ -166,70 +183,100 @@ class ESP32Cam:
     # internals
     # -------------------------------------------------
     def _close_socket(self):
-        if self._sock is None:
-            return
-        try:
-            self._sock.close()
-        except OSError:
-            pass
+        sock = self._sock
         self._sock = None
+        response = self._response
+        self._response = None
+        if sock is not None:
+            try:
+                sock.shutdown(socket.SHUT_RDWR)
+            except OSError:
+                pass
+            sock.close()
+        if response is not None:
+            response.close()
 
     def _connect(self):
         self._close_socket()
         self._buf = bytearray()
 
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-        sock.settimeout(CONNECT_TIMEOUT)
-        sock.connect((self.host, self.port))
-
-        request = (
-            f"GET {self.path} HTTP/1.1\r\n"
-            f"Host: {self.host}\r\n"
-            f"Accept: multipart/x-mixed-replace\r\n"
-            f"Connection: keep-alive\r\n"
-            f"\r\n"
-        )
-        sock.sendall(request.encode())
-
-        # Read the header block, keeping any body bytes that arrived with it.
-        header = b""
-        while b"\r\n\r\n" not in header:
-            chunk = sock.recv(4096)
-            if not chunk:
-                raise ConnectionError("connection closed during headers")
-            header += chunk
-
-        head, _, body = header.partition(b"\r\n\r\n")
-        status = head.split(b"\r\n", 1)[0].decode("latin-1", "replace")
-        if " 200" not in status:
-            raise ConnectionError(f"unexpected response: {status}")
-
-        sock.settimeout(READ_TIMEOUT)
         self._sock = sock
-        self._buf = bytearray(body)
+        try:
+            sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+            sock.settimeout(CONNECT_TIMEOUT)
+            sock.connect((self.host, self.port))
+            request = (
+                f"GET {self.path} HTTP/1.1\r\n"
+                f"Host: {self.host}:{self.port}\r\n"
+                f"Accept: multipart/x-mixed-replace\r\n"
+                f"Connection: keep-alive\r\n\r\n"
+            )
+            sock.sendall(request.encode())
+            # HTTPResponse removes transfer chunk lengths even when a JPEG
+            # spans several HTTP chunks. read1() returns available bytes
+            # without waiting to fill a 64 KiB read with multiple frames.
+            response = http.client.HTTPResponse(sock)
+            self._response = response
+            response.begin()
+            if response.status != 200:
+                raise ConnectionError(f"unexpected response: {response.status}")
+            if "multipart/x-mixed-replace" not in response.getheader("Content-Type", "").lower():
+                raise ConnectionError("response is not an MJPEG stream")
+            if self._stop_event.is_set():
+                raise ConnectionError("reader stopped during connection")
+            sock.settimeout(READ_TIMEOUT)
+        except Exception:
+            self._close_socket()
+            raise
 
     def _read_jpeg(self):
+        """Return the *newest* complete JPEG available, discarding any older
+        ones still sitting in the buffer. If the consumer ever lags behind the
+        network, stale frames are dropped instead of queued — that is what
+        keeps latency flat instead of growing over time."""
         buf = self._buf
         while self._running:
-            start = buf.find(b"\xff\xd8")
-            if start != -1:
-                end = buf.find(b"\xff\xd9", start)
-                if end != -1:
-                    jpeg = bytes(buf[start : end + 2])
-                    del buf[: end + 2]
-                    return jpeg
-                if len(buf) > MAX_FRAME:
-                    del buf[:]
-            elif len(buf) > 4096:
-                # keep the tail in case a marker straddles two reads
-                del buf[:-2]
+            jpeg = self._newest_jpeg(buf)
+            if jpeg is not None:
+                return jpeg
 
-            chunk = self._sock.recv(RECV_SIZE)
+            if len(buf) > MAX_FRAME:
+                # no EOI in a buffer this large: corrupted frame, resync
+                start = buf.rfind(b"\xff\xd8")
+                if start > 0:
+                    del buf[:start]
+                else:
+                    del buf[:]
+
+            response = self._response
+            if response is None:
+                raise ConnectionError("stream is disconnected")
+            chunk = response.read1(RECV_SIZE)
             if not chunk:
                 raise ConnectionError("connection closed")
             buf += chunk
         return None
+
+    @staticmethod
+    def _newest_jpeg(buf):
+        last = None
+        pos = 0
+        while True:
+            start = buf.find(b"\xff\xd8", pos)
+            if start == -1:
+                break
+            end = buf.find(b"\xff\xd9", start + 2)
+            if end == -1:
+                break
+            last = (start, end + 2)
+            pos = end + 2
+        if last is None:
+            return None
+        start, stop = last
+        jpeg = bytes(buf[start:stop])
+        del buf[:stop]  # drops every older frame along with it
+        return jpeg
 
     def _publish(self, frame):
         with self._cond:
@@ -238,9 +285,13 @@ class ESP32Cam:
             self._cond.notify_all()
 
     def _reader_loop(self):
-        window_start = time.time()
+        window_start = time.monotonic()
         while self._running:
             try:
+                if self._response is None:
+                    self._connect()
+                    self._frame_count = 0
+                    window_start = time.monotonic()
                 jpeg = self._read_jpeg()
                 if jpeg is None:
                     continue
@@ -248,23 +299,23 @@ class ESP32Cam:
                 frame = cv2.imdecode(np.frombuffer(jpeg, np.uint8), cv2.IMREAD_COLOR)
                 if frame is None:
                     continue
+                if self.rgb:
+                    frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
                 self._publish(frame)
                 self._frame_count += 1
 
-                elapsed = time.time() - window_start
+                elapsed = time.monotonic() - window_start
                 if elapsed >= 1.0:
                     self.fps = self._frame_count / elapsed
                     self._frame_count = 0
-                    window_start = time.time()
-            except (ConnectionError, socket.timeout, OSError):
+                    window_start = time.monotonic()
+            except (ConnectionError, OSError, http.client.HTTPException, ValueError):
+                self._close_socket()
+                self.fps = 0.0
                 if not self._running:
                     break
-                time.sleep(0.5)
-                try:
-                    self._connect()
-                except (ConnectionError, OSError):
-                    time.sleep(1.5)
+                self._stop_event.wait(1.0)
 
     def __repr__(self):
         return f"<ESP32Cam {self.url} running={self._running} fps={self.fps:.1f}>"
@@ -287,17 +338,17 @@ def flash_firmware(port=None):
     if subprocess.run(cmd, cwd=str(Path(__file__).parent)).returncode != 0:
         sys.exit("[!] Flash failed")
 
-    print("[+] Flash complete. Board is rebooting...")
+    print("[+] Flash complete. Disconnect GPIO0 from GND and reset the board to run.")
     time.sleep(3)
 
 
-def stream_video(url=DEFAULT_URL, save=False, display=True, max_frames=None):
+def stream_video(url=DEFAULT_URL, save=False, display=True, max_frames=None, rgb=False):
     """Open the stream; optionally display it and/or write an MP4.
 
     Returns the number of frames read, so callers can use it as a source:
         n = stream_video(display=False, max_frames=30)
     """
-    cam = ESP32Cam(url)
+    cam = ESP32Cam(url, rgb=rgb)
     print(f"[+] Connecting to {cam.url} ...")
     try:
         cam.start()
@@ -338,6 +389,7 @@ def stream_video(url=DEFAULT_URL, save=False, display=True, max_frames=None):
                         flush=True,
                     )
             else:
+                frame = frame.copy()  # keep overlays out of frames shared with models
                 cv2.putText(
                     frame,
                     f"{cam.host}  FPS: {cam.fps:.0f}",
@@ -407,17 +459,23 @@ def main():
     parser.add_argument(
         "--size",
         choices=["qqvga", "qvga", "cif", "hvga", "vga", "svga", "hd"],
-        help="camera resolution (applied live on the board)",
+        default=None,
+        help=f"camera resolution (default {DEFAULT_SIZE})",
     )
     parser.add_argument(
-        "--quality", type=int, help="JPEG quality 4..63 (lower = bigger/better image)"
+        "--quality", type=int, help="JPEG quality 4..63 (pins quality, disables auto-tune)"
+    )
+    parser.add_argument(
+        "--rgb", action="store_true", help="emit RGB frames (torch/onnx) instead of BGR"
     )
     args = parser.parse_args()
 
     url = args.url
+    if args.quality is not None and not 4 <= args.quality <= 63:
+        parser.error("--quality must be between 4 and 63")
     if args.ip:
         parsed = urlparse(url)
-        url = f"http://{args.ip}:{parsed.port or 80}{parsed.path or '/stream'}"
+        url = urlunparse(parsed._replace(netloc=f"{args.ip}:{parsed.port or 80}"))
 
     if args.size or args.quality:
         p = urlparse(url)
@@ -436,10 +494,11 @@ def main():
             save=args.save,
             display=not args.no_display,
             max_frames=args.frames,
+            rgb=args.rgb,
         )
     elif args.command == "capture":
         u = urlparse(url)
-        capture_frame(url=f"http://{u.hostname}:{u.port or 80}/capture")
+        capture_frame(url=f"http://{u.hostname}:80/capture" + (f"?{u.query}" if u.query else ""))
 
 
 if __name__ == "__main__":

@@ -1,0 +1,16 @@
+# generated at runtime
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# user-generated artifacts (keep the folders via .gitkeep)
+outputs/*
+!outputs/.gitkeep
+benchmarks/*
+!benchmarks/.gitkeep
+calibration_data/*
+!calibration_data/.gitkeep
+
+# model weights are never committed (see models/README.md)
+models/*
+!models/README.md

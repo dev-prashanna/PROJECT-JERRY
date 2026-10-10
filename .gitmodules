@@ -1,3 +1,0 @@
-[submodule "esp32-cam-streamer/saras_ai_robot_v2"]
-	path = esp32-cam-streamer/saras_ai_robot_v2
-	url = https://github.com/dev-prashanna/saras_ai_robot_v2.git

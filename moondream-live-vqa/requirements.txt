@@ -1,0 +1,29 @@
+# Moondream Live VQA — runtime dependencies
+#
+# The versions below are the ones verified on the development machine
+# (see docs/environment_report.txt).  Newer compatible versions should work;
+# the application never upgrades your CUDA/PyTorch stack automatically.
+
+# --- deep learning ---------------------------------------------------------
+torch>=2.1                     # verified: 2.13.0+cu130 (CUDA 13.0 runtime)
+torchvision>=0.23              # verified: 0.28.0+cu130
+transformers>=4.52             # verified: 5.14.1 (loads the local HF checkpoint)
+accelerate>=1.0                # verified: 1.14.0 (device placement)
+safetensors>=0.4               # verified: 0.8.0 (model.safetensors reader)
+tokenizers>=0.20               # verified: 0.22.2
+einops>=0.7                    # verified: 0.8.2 (used by the model code)
+
+# --- imaging / capture -----------------------------------------------------
+opencv-python>=4.9             # verified: 5.0.0 (V4L2 camera capture)
+Pillow>=10.0                   # verified: 10.2.0 (model input format)
+numpy>=1.26                    # verified: 2.5.3
+
+# --- GUI -------------------------------------------------------------------
+PySide6>=6.6                   # verified: 6.11.1 (Qt 6 desktop UI)
+
+# --- optional, only for very large (>~4k px) images ------------------------
+# pyvips==2.2.3                 # the Moondream code falls back to PIL without it
+# pyvips-binary==8.16.0
+
+# --- development ------------------------------------------------------------
+pytest>=7.4                    # verified: 7.4.4

@@ -1,0 +1,19 @@
+# Runtime requirements for realtime_depth_app
+# Verified on: Python 3.12.3, CUDA 13.0, RTX 4060 Laptop
+#
+#   pip install -r requirements.txt
+#
+# PyTorch with CUDA: install the wheel matching your driver first, e.g.
+#   pip install torch==2.13.0 --index-url https://download.pytorch.org/whl/cu130
+# then the rest of this file.
+
+torch==2.13.0                # inference (CUDA build required for GPU acceleration)
+transformers==5.14.1         # Depth-Anything-V2 model + DPTImageProcessor
+opencv-python==5.0.0         # capture, rendering, ArUco, checkerboard calibration
+numpy>=2.0                   # array math (2.5.3 verified)
+scipy>=1.11                  # robust calibration fitting (1.18.1 verified)
+PyYAML==6.0.1                # config.yaml parsing
+safetensors                  # weight loading (pulled in by transformers)
+pillow                       # image file input
+# test-only
+pytest>=7.4
