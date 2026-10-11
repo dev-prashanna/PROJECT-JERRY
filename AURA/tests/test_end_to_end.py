@@ -464,6 +464,37 @@ def test_empty_transcript_is_dropped_before_routing():
     assert agent.camera.snapshots == 0
 
 
+def test_empty_transcript_reports_why_to_the_ui():
+    """A silent/failed transcription must not look like a dead pipeline."""
+    stt = FakeSTT(text="")
+    agent = _start(make_agent(plan=plan_dict("greeting"), answer="hi", stt=stt))
+    seen: list[str] = []
+    agent.on("error", seen.append)
+    try:
+        agent.handle_recording(recording())
+    finally:
+        agent.shutdown()
+    assert seen, "an empty transcript should surface a user-visible message"
+    assert "try again" in seen[0].lower() or "hear" in seen[0].lower()
+
+
+def test_stt_engine_failure_is_reported_not_swallowed():
+    stt = FakeSTT(
+        text="",
+        fail=True,
+        error="Library libcublas.so.12 is not found or cannot be loaded",
+    )
+    agent = _start(make_agent(plan=plan_dict("greeting"), answer="hi", stt=stt))
+    seen: list[str] = []
+    agent.on("error", seen.append)
+    try:
+        record = agent.handle_recording(recording())
+    finally:
+        agent.shutdown()
+    assert record.response == ""
+    assert seen and "recognition" in seen[0].lower()
+
+
 def test_time_to_first_audio_is_measured():
     agent = _start(make_agent(plan=plan_dict("greeting"), answer="Hello there, friend."))
     try:

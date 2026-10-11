@@ -104,45 +104,106 @@ def resolve_torch_device(preference: str = "auto") -> str:
         return "cpu"
 
 
-def ensure_ct2_cuda_libs() -> bool:
-    """Preload the CUDA 12 runtime libraries CTranslate2 (faster-whisper) needs.
+#: Libraries CTranslate2's CUDA backend ``dlopen()``s at inference time.
+#: Without *both* of these, ``WhisperModel(device="cuda")`` loads fine but the
+#: very first encode() raises ``Library libcublas.so.12 is not found``.
+CT2_REQUIRED_LIBS: tuple[str, ...] = ("libcudart.so.12", "libcublas.so.12")
+#: Nice to have; a failure here is not fatal for transcription.
+CT2_OPTIONAL_LIBS: tuple[str, ...] = ("libcufft.so.11", "libcurand.so.10", "libcusparse.so.12")
 
-    This machine ships a CUDA 13 PyTorch build, while ctranslate2 links
-    against ``libcublas.so.12``.  The cu12 libraries are installed by pip
-    (``nvidia-cublas-cu12``) but are not on the dynamic loader's search path.
-    Loading them here with an absolute path makes later ``dlopen`` calls
-    succeed without requiring ``LD_LIBRARY_PATH`` to be set by hand.
-    """
-    import ctypes
-    import glob
+
+def _ct2_library_dirs() -> list:
+    """Directories that plausibly contain the CUDA 12 runtime libraries."""
     import site
+    import sys
+    from pathlib import Path
+
+    dirs: list[Path] = []
+
+    # pip wheels ship them under site-packages/nvidia/<component>/lib
+    for root in [site.getusersitepackages()] + list(site.getsitepackages()):
+        base = Path(root) / "nvidia"
+        if base.is_dir():
+            dirs.extend(p for p in base.glob("*/lib") if p.is_dir())
+
+    prefix = Path(sys.prefix)
+    dirs.append(prefix / "lib")
+    # conda envs live at <root>/envs/<name>, so the root env's lib is two levels up.
+    dirs.append(prefix.parent.parent / "lib")
+
+    for var in ("LD_LIBRARY_PATH", "CUDA_PATH", "CUDA_HOME"):
+        for entry in (os.environ.get(var) or "").split(":"):
+            if entry:
+                dirs.append(Path(entry))
+
+    dirs.extend(
+        Path(p)
+        for p in ("/usr/local/cuda/lib64", "/usr/lib/x86_64-linux-gnu", "/usr/lib64", "/usr/lib")
+    )
+
+    seen: set[str] = set()
+    ordered: list[Path] = []
+    for d in dirs:
+        key = str(d)
+        if key not in seen and d.is_dir():
+            seen.add(key)
+            ordered.append(d)
+    return ordered
+
+
+def _load_soname(soname: str, dirs: list) -> bool:
+    """dlopen ``soname`` (by name, then by absolute path) with RTLD_GLOBAL."""
+    import ctypes
     from pathlib import Path
 
     try:
-        ctypes.CDLL("libcublas.so.12", mode=ctypes.RTLD_GLOBAL)
+        ctypes.CDLL(soname, mode=ctypes.RTLD_GLOBAL)
         return True
     except OSError:
         pass
-
-    roots = [site.getusersitepackages()] + list(site.getsitepackages())
-    # cudart must come before cublas (dependency order).
-    wanted = ("libcudart.so.12", "libcublas.so.12", "libcufft.so.11", "libcurand.so.10")
-    loaded_any = False
-    for soname in wanted:
-        for root in roots:
-            base = Path(root) / "nvidia"
-            if not base.is_dir():
+    for d in dirs:
+        for match in sorted(d.glob(soname + "*")):
+            if not match.is_file() and not match.is_symlink():
                 continue
-            for match in sorted(glob.glob(str(base / "**" / soname), recursive=True)):
-                try:
-                    ctypes.CDLL(match, mode=ctypes.RTLD_GLOBAL)
-                    loaded_any = True
-                    break
-                except OSError:
-                    continue
-    if loaded_any:
-        log.debug("preloaded CUDA 12 libraries for CTranslate2")
-    return loaded_any
+            try:
+                ctypes.CDLL(str(match), mode=ctypes.RTLD_GLOBAL)
+                log.debug("preloaded %s from %s", soname, match)
+                return True
+            except OSError:
+                continue
+    return False
+
+
+def ensure_ct2_cuda_libs() -> bool:
+    """Preload the CUDA 12 runtime libraries CTranslate2 (faster-whisper) needs.
+
+    This machine ships a CUDA 13 PyTorch build, while ctranslate2 4.x links
+    against ``libcublas.so.12`` / ``libcudart.so.12``.  Those libraries are
+    usually on disk but not on the dynamic loader's search path, so we
+    ``dlopen`` them with an absolute path (``RTLD_GLOBAL``) here; later
+    ``dlopen("libcublas.so.12")`` calls then resolve to the already-loaded
+    object instead of failing.
+
+    Returns ``True`` only when **every required** library is loaded — a
+    partial preload (say, ``libcurand`` only) would make the model load on
+    CUDA and then crash on the first transcription.
+    """
+    dirs = _ct2_library_dirs()
+
+    # Order matters: cudart must come before cublas (dependency order).
+    missing = [s for s in CT2_REQUIRED_LIBS if not _load_soname(s, dirs)]
+    if missing:
+        log.warning(
+            "CUDA 12 libraries required by CTranslate2 not found (%s); "
+            "whisper will run on CPU",
+            ", ".join(missing),
+        )
+        return False
+
+    for soname in CT2_OPTIONAL_LIBS:
+        _load_soname(soname, dirs)
+    log.debug("CUDA 12 libraries for CTranslate2 preloaded")
+    return True
 
 
 # ---------------------------------------------------------------------------

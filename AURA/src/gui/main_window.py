@@ -7,7 +7,7 @@ Layout::
     │                                   preview       │
     │                                   [blank warn]  │
     │  ──────────────────────────────────────────────  │
-    │  Voice controls      System monitor             │
+    │  Voice controls   System monitor   Memory       │
     └────────────────────────────────────────────────┘
 
 All agent callbacks arrive through :class:`AgentBridge` signals, so every
@@ -35,6 +35,7 @@ from PySide6.QtWidgets import (
 from src.gui.bridge import AgentBridge, wire_agent
 from src.gui.camera_panel import CameraPanel
 from src.gui.conversation_panel import ConversationPanel
+from src.gui.memory_panel import MemoryPanel
 from src.gui.speech_panel import SpeechPanel
 from src.gui.system_monitor import SystemMonitor
 
@@ -86,12 +87,14 @@ class MainWindow(QMainWindow):
         self.camera = CameraPanel(agent)
         self.speech = SpeechPanel(agent, speak_default=speak)
         self.monitor = SystemMonitor(agent)
+        self.memory = MemoryPanel(agent)
 
         right = QWidget()
         right_l = QVBoxLayout(right)
         right_l.setContentsMargins(0, 0, 0, 0)
         right_l.addWidget(self.camera, 3)
         right_l.addWidget(self.monitor, 1)
+        right_l.addWidget(self.memory, 2)
 
         splitter = QSplitter(Qt.Orientation.Horizontal)
         splitter.addWidget(self.conversation)
@@ -125,6 +128,8 @@ class MainWindow(QMainWindow):
         self.conversation.stop_speaking_requested.connect(agent.stop_speaking)
         self.speech.stop_speaking_requested.connect(agent.stop_speaking)
         self.speech.recording_finished.connect(self._on_recording)
+        self.speech.recording_failed.connect(self._on_mic_error)
+        self.memory.forget_requested.connect(self.conversation.add_status)
 
         # --- lifecycle -------------------------------------------------
         self.agent.start(warm_models=True)
@@ -143,6 +148,8 @@ class MainWindow(QMainWindow):
         self.statusBar().showMessage(f"state → {name}")
 
     def _on_transcript(self, text: str, result: Any = None) -> None:
+        if not (text or "").strip():
+            return  # empty transcripts already surface as an error message
         self.conversation.add_status(f"heard: {text!r}")
 
     def _on_route(self, decision: Any) -> None:
@@ -170,6 +177,10 @@ class MainWindow(QMainWindow):
         self.conversation.add_error(message)
         self.statusBar().showMessage(f"error: {message}")
 
+    def _on_mic_error(self, message: str) -> None:
+        self.conversation.add_error(f"microphone: {message}")
+        self.statusBar().showMessage(f"microphone error: {message}")
+
     # ------------------------------------------------------------------
     # actions
     # ------------------------------------------------------------------
@@ -188,6 +199,7 @@ class MainWindow(QMainWindow):
     def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
         self.camera.shutdown()
         self.monitor.shutdown()
+        self.memory.shutdown()
         self.speech.shutdown()
         try:
             self.agent.shutdown(timeout_s=3.0)

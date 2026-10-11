@@ -89,6 +89,31 @@ checks the reply against the evidence text and flags (and softens) claims that
 introduce objects/numbers not present in the observation — this is what keeps
 the VLM honest on dark/empty camera frames.
 
+## Multimodal memory
+
+`src/memory/` — a persistent, consent-aware memory engine (`MultimodalMemoryEngine`)
+backed by local SQLite (`~/.aura/memory/aura_memory.db`, WAL, versioned
+migrations). It stores declarative facts (subject/predicate/object with
+provenance), 128-D face embeddings (consent-gated self-enrolment only) and
+object embeddings (CLIP when cached, deterministic sift-color fallback), all
+linked through a shared entity graph. Each turn, the retriever assembles a
+`MemoryContext`; write tools answer directly, query tools attach a
+prompt-injection-hardened memory block to the response prompt, and ordinary
+conversation turns are mined for new facts in the background. Memory intents
+(`remember_fact`, `correct_memory`, `query_memory`, `learn_identity`,
+`learn_visual_object`, `recognize_person`, `forget_memory`, `list_memories`)
+route through the same tool registry as everything else.
+
+On top of that, the **Persistent Episodic & Conversational Memory** layer
+(schema v3) commits every interaction — user transcript, VLM observation,
+assistant response — to a durable `conversation_events` table *before* any
+embedding or summarization job runs. FTS5 keyword search and deterministic
+hash embeddings (Reciprocal Rank Fusion) power hybrid retrieval; historical
+visual questions ("what color was the curtain earlier?") are answered from the
+event log without requesting a camera frame (`recall_memory`,
+`recall_visual_memory` intents). Details:
+[docs/MMS_OVERVIEW.md](MMS_OVERVIEW.md), [docs/MMS_INTEGRATION.md](MMS_INTEGRATION.md).
+
 ## Threading model
 
 * One scheduler worker thread runs queued requests (`PipelineScheduler`,

@@ -33,7 +33,10 @@ from src.orchestrator.schemas import (
     RoutePlan,
     ToolResult,
     VisualEvidence,
+    MEMORY_CAMERA_INTENTS,
+    MEMORY_INTENTS,
     VISUAL_INTENTS,
+    VISUAL_RECALL_INTENTS,
 )
 from src.orchestrator.scheduler import Job, PipelineScheduler
 from src.orchestrator.state_machine import State, StateMachine
@@ -69,11 +72,23 @@ class AIAgent:
         self.vlm = None  # lazily loaded (GPU)
         self._warm_thread: threading.Thread | None = None
 
+        self.memory_engine = None
+        if getattr(self.settings, "memory", None) and self.settings.memory.enabled:
+            try:
+                from src.memory.engine import MultimodalMemoryEngine
+
+                self.memory_engine = MultimodalMemoryEngine(self.settings.memory)
+                self.memory_engine.initialize()
+            except Exception as exc:  # noqa: BLE001 - memory must never block AURA
+                log.warning("memory engine init failed: %s", exc)
+                self.memory_engine = None
+
         self.ctx = ToolContext(
             camera=self.camera,
             memory=self.memory,
             tool_timeout=self.settings.orchestrator.tool_timeout_s,
             system_status_fn=self.status,
+            memory_engine=self.memory_engine,
         )
         self.registry = build_registry(self.ctx)
         self.scheduler = PipelineScheduler(
@@ -192,6 +207,11 @@ class AIAgent:
             except Exception:  # pragma: no cover
                 pass
             self.vlm = None
+        if self.memory_engine is not None:
+            try:
+                self.memory_engine.shutdown()
+            except Exception:  # pragma: no cover
+                log.exception("memory engine shutdown failed")
         try:
             self.sm.try_transition(State.SHUTDOWN, "shutdown")
         except Exception:  # pragma: no cover
@@ -242,6 +262,7 @@ class AIAgent:
                 "configured": self.settings.llm.available,
             },
             "memory_turns": len(self.memory),
+            "memory": self.memory_engine.status() if self.memory_engine else {"enabled": False},
             "last_error": self._last_record.error if self._last_record else None,
             "last_response": self.memory.last_response,
         }
@@ -293,8 +314,11 @@ class AIAgent:
         metrics.flags["transcript"] = result.text
 
         if not result.ok:
-            log.info("ignoring empty transcript")
+            log.info("ignoring empty transcript (%s)", result.error or "no speech")
             self.sm.try_transition(State.IDLE, "empty transcript")
+            # Surface why nothing happened — without this the user just sees
+            # silence and assumes the whole voice pipeline is dead.
+            self._emit("error", _empty_transcript_message(recording, result))
             return RequestRecord(transcript="", error="empty transcript")
 
         return self.handle_text(
@@ -317,6 +341,7 @@ class AIAgent:
         metrics = metrics or REGISTRY.new(f"txt_{int(time.time() * 1000)}")
         metrics.flags["speech_ended_at"] = speech_ended_at
         record = RequestRecord(transcript=transcript, mode=self.mode)
+        self.ctx.turn_transcript = transcript
         metrics.start("route")
 
         try:
@@ -340,8 +365,15 @@ class AIAgent:
             # -- tool execution (visual path) --------------------------
             if decision.plan.is_visual:
                 self._run_visual_tools(record, decision.plan, metrics)
+            elif (
+                decision.plan.requires_camera
+                and decision.plan.intent in MEMORY_CAMERA_INTENTS
+            ):
+                self._run_memory_vision_tools(record, decision.plan, metrics)
             elif decision.plan.tool not in {"respond_directly", "analyze_camera", "describe_scene"}:
                 self._run_tool(record, decision.plan, metrics)
+
+            self._apply_memory_tool_effects(record, decision.plan, metrics)
 
             if decision.plan.tool == "repeat_last_response" and self.memory.last_response:
                 record.response = self.memory.last_response
@@ -466,6 +498,122 @@ class AIAgent:
             record.error = result.error
         self._attach_depth(record)
 
+    def _run_memory_vision_tools(
+        self, record: RequestRecord, plan: RoutePlan, metrics: RequestMetrics
+    ) -> None:
+        """CAPTURING for memory tools that need a fresh frame (no VLM)."""
+        assert self.camera is not None, "camera not configured"
+        if self.sm.state not in {State.CAPTURING, State.PERCEIVING}:
+            try:
+                self.sm.transition(State.CAPTURING, "memory snapshot")
+            except Exception:  # noqa: BLE001 - tolerate odd states
+                pass
+        with StageTimer(metrics, "camera_snapshot"):
+            frame = self.camera.snapshot(wait_s=2.5)
+        metrics.flags["frame_id"] = frame.tag
+        metrics.flags["frame_age_s"] = round(frame.age_s, 3)
+        self.ctx.pending_snapshot = frame
+        self._run_tool(record, plan, metrics)
+
+    def _apply_memory_tool_effects(
+        self, record: RequestRecord, plan: RoutePlan, metrics: RequestMetrics
+    ) -> None:
+        """Turn memory tool results into spoken answers / prompt evidence."""
+        if plan.intent not in MEMORY_INTENTS or not plan.tool:
+            return
+        result = None
+        for r in record.tool_results:
+            if r.tool == plan.tool or (
+                plan.tool in {"correct_memory", "remember_fact"}
+                and r.tool in {"correct_memory", "remember_fact"}
+            ):
+                result = r
+        if result is None:
+            return
+        metrics.flags["memory_ok"] = result.ok
+        metrics.flags["memory_tool"] = result.tool
+
+        direct_tools = {
+            "remember_fact",
+            "correct_memory",
+            "remember_identity",
+            "learn_visual_object",
+            "forget_memory",
+            "list_memories",
+        }
+        # Historical recall tools carry the answer in the payload; offline we
+        # speak it directly, online we inject episodic context so the LLM can
+        # answer naturally grounded in the retrieved events.
+        recall_tools = {"recall_memory", "recall_visual_memory"}
+        if plan.tool in recall_tools or plan.intent in VISUAL_RECALL_INTENTS or plan.intent is Intent.RECALL_MEMORY:
+            record.metadata["episodic_context"] = self._episodic_block(result)
+            record.metadata["recall_status"] = (result.payload or {}).get("status", "")
+            if result.ok:
+                if self.offline:
+                    events = (result.payload or {}).get("events") or []
+                    direct = (result.payload or {}).get("direct_answer") or result.text
+                    if not direct and events:
+                        direct = str(events[0].get("content") or "")
+                    if direct:
+                        record.response = direct
+                        record.response_strategy = "memory_offline"
+            elif result.error and not record.response:
+                record.response = _memory_error_message(result)
+                record.response_strategy = "memory_error"
+            return
+
+        if plan.tool in direct_tools:
+            if result.ok:
+                record.response = result.text or "Done."
+                record.response_strategy = "memory_direct"
+            elif result.error and not record.response:
+                record.response = _memory_error_message(result)
+                record.response_strategy = "memory_error"
+            return
+
+        # Query / recognition tools: attach memory evidence for the generator.
+        memory_block = (result.payload or {}).get("memory_block")
+        if memory_block:
+            record.metadata["memory_block"] = memory_block
+        if result.payload:
+            record.metadata["memory_payload"] = {
+                k: v
+                for k, v in result.payload.items()
+                if k in {"matches", "entity_name", "direct_answer", "context", "facts"}
+            }
+        offline = self.offline
+        if not result.ok:
+            record.error = record.error or result.error
+            if offline:
+                record.response = _memory_error_message(result)
+            return
+        if offline:
+            record.response = (
+                str(result.payload.get("direct_answer") or result.text or "")
+            )
+            record.response_strategy = "memory_offline"
+
+    @staticmethod
+    def _episodic_block(result: ToolResult) -> str:
+        """Format a recall tool result into the RAG context block for the LLM."""
+        payload = result.payload or {}
+        events = payload.get("events") or []
+        episodes = payload.get("episodes") or []
+        if not events and not episodes:
+            return ""
+        lines: list[str] = []
+        for ep in episodes[:3]:
+            lines.append(f"[{ep.get('episode_type', 'episode')}] {ep.get('summary', '')}")
+        for ev in events[:5]:
+            label = str(ev.get("event_type", "event")).replace("_", " ")
+            lines.append(f"({label}) {ev.get('content', '')}")
+        if not lines:
+            return ""
+        return (
+            "Relevant past observations and conversation (local memory):\n"
+            + "\n".join(f"- {l}" for l in lines)
+        )
+
     def _attach_depth(self, record: RequestRecord) -> None:
         """Best-effort monocular depth summary for near/far reasoning."""
         try:
@@ -542,7 +690,7 @@ class AIAgent:
 
     def _finish_turn(self, record: RequestRecord, metrics: RequestMetrics) -> None:
         if record.transcript and record.response:
-            self.memory.record(
+            turn = self.memory.record(
                 user_transcript=record.transcript,
                 final_response=record.response,
                 intent=record.plan.intent.value if record.plan else None,
@@ -551,6 +699,33 @@ class AIAgent:
                 route_tool=record.plan.tool if record.plan else None,
                 error=record.error,
             )
+            # Durable PECM event log — original interaction first; embedding
+            # and episode build jobs are queued afterwards (non-blocking).
+            if self.memory_engine is not None and not record.error:
+                try:
+                    self.memory_engine.record_turn(
+                        transcript=record.transcript,
+                        observation=record.evidence_text or "",
+                        response=record.response,
+                        turn_id=turn.turn_id,
+                        frame_id=metrics.flags.get("frame_id") or "",
+                        vlm_model=(record.evidence[0].source if record.evidence else ""),
+                    )
+                except Exception as exc:  # noqa: BLE001 - never block the turn
+                    log.debug("durable event recording skipped: %s", exc)
+            # Background fact learning for ordinary conversation turns.
+            if (
+                self.memory_engine is not None
+                and record.plan is not None
+                and record.plan.intent not in MEMORY_INTENTS
+                and not record.error
+            ):
+                try:
+                    self.memory_engine.maybe_learn_facts(
+                        record.transcript, turn_id=turn.turn_id
+                    )
+                except Exception as exc:  # noqa: BLE001
+                    log.debug("background fact learning skipped: %s", exc)
         self._last_record = record
         self._last_metrics = metrics
         metrics.stages["total"] = metrics.total_s
@@ -621,6 +796,26 @@ class AIAgent:
 # module helpers
 # ---------------------------------------------------------------------------
 
+def _memory_error_message(result: ToolResult) -> str:
+    code = str((result.payload or {}).get("error_code") or "")
+    error = (result.error or "").lower()
+    if "multiple faces" in error or code == "MultipleFacesAmbiguous":
+        return "I can see more than one face. Please select the person to enroll and confirm."
+    if "consent" in error or code == "ConsentRequired":
+        return "I need your explicit confirmation before storing a face. Please say: remember my face as your name."
+    if "no face" in error or code == "FaceNotDetected":
+        return "I could not detect a face in the camera view."
+    if "not enabled" in error or code == "FaceRecognitionUnavailable":
+        return "Face recognition is not enabled right now."
+    if "no prior fact" in error or code == "ConflictingMemory":
+        return "I could not find a previous fact to correct."
+    if "camera" in error:
+        return "I cannot use the camera right now, so I cannot complete that memory request."
+    if result.error:
+        return "I could not complete that memory request: " + result.error
+    return "I could not complete that memory request."
+
+
 def _evidence_from_result(result: ToolResult) -> Optional[VisualEvidence]:
     raw = (result.payload or {}).get("evidence")
     if not raw:
@@ -629,6 +824,22 @@ def _evidence_from_result(result: ToolResult) -> Optional[VisualEvidence]:
         return VisualEvidence.model_validate(raw)
     except Exception:  # noqa: BLE001
         return None
+
+
+def _empty_transcript_message(recording, result) -> str:
+    """Human-readable reason a voice turn produced no transcript."""
+    error = (result.error or "").lower()
+    samples = getattr(recording, "samples", None)
+    if samples is None or len(samples) == 0 or recording.is_effectively_empty:
+        return (
+            "I did not hear anything. Please check that the microphone is "
+            "connected and speak again."
+        )
+    if any(k in error for k in ("libcublas", "libcudart", "cuda", "failed to load")):
+        return "Speech recognition could not start on this machine. Check the AURA log."
+    if error in {"no audio", "audio too quiet"}:
+        return "I could not hear that clearly — please try again, a little louder."
+    return "Sorry, I could not understand what you said. Please try again."
 
 
 def _friendly_error(exc: AURAError) -> str:

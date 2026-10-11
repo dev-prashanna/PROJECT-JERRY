@@ -338,7 +338,7 @@ def flash_firmware(port=None):
     if subprocess.run(cmd, cwd=str(Path(__file__).parent)).returncode != 0:
         sys.exit("[!] Flash failed")
 
-    print("[+] Flash complete. Disconnect GPIO0 from GND and reset the board to run.")
+    print("[+] Flash complete. Board is rebooting...")
     time.sleep(3)
 
 

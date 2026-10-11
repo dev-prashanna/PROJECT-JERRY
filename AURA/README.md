@@ -47,13 +47,22 @@ python3 main.py --gui                      # PySide6 dashboard
 * `src/intelligence/` — Groq client (with fallbacks, timeouts, budget),
   deterministic + LLM intent router, prompt builder, response generator with
   hallucination auditing, conversation memory.
+* `src/memory/` — Multimodal Memory System: persistent consent-aware facts,
+  faces and objects (SQLite + vector index) plus the Persistent Episodic &
+  Conversational Memory layer — a durable event log, FTS5 + semantic hybrid
+  retrieval and camera-free historical visual recall. See
+  [docs/MMS_OVERVIEW.md](docs/MMS_OVERVIEW.md).
 * `src/orchestrator/` — the `AIAgent` state machine, tool registry, bounded
   job scheduler, pydantic schemas, `build_agent()` bootstrap.
-* `src/gui/` — PySide6 dashboard (thread-safe via a signal bridge).
-* `scripts/` — environment inspection, per-model verification, benchmarks.
-* `tests/` — 170 tests including a fully faked end-to-end acceptance suite.
+* `src/gui/` — PySide6 dashboard (thread-safe via a signal bridge), including
+  a Memory panel for browsing stored memories and the recent conversation log.
+* `scripts/` — environment inspection, per-model verification, benchmarks
+  (`benchmark_pipeline.py`, `benchmark_memory.py`, `benchmark_pecm.py`).
+* `tests/` — 338 tests including a fully faked end-to-end acceptance suite and
+  the hardware-free MMS + PECM suites (`tests/memory/`).
 
-Details in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+Details in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) and
+[docs/MMS_INTEGRATION.md](docs/MMS_INTEGRATION.md).
 
 ## Design principles
 

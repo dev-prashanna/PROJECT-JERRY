@@ -29,6 +29,7 @@ class _RecordWorker(QThread):
 
 class SpeechPanel(QFrame):
     recording_finished = Signal(object)   # Recording -> submit to agent
+    recording_failed = Signal(str)        # mic / capture error text
     stop_speaking_requested = Signal()
 
     def __init__(self, agent: Any, speak_default: bool = True, parent: Optional[QWidget] = None) -> None:
@@ -114,9 +115,8 @@ class SpeechPanel(QFrame):
     def _on_failed(self, message: str) -> None:
         self._reset_button()
         self.state_label.setText("mic error")
-        self.stop_speaking_requested.emit()  # reuse channel? no-op; main window logs error
-        # The main window watches for this via agent events; keep a local hint too.
         self.state_label.setToolTip(message)
+        self.recording_failed.emit(message)
 
     def _reset_button(self) -> None:
         self.record_btn.setChecked(False)

@@ -93,7 +93,9 @@ class AudioPlayer:
                 dtype="float32",
                 device=None if self._device in (-1, None) else self._device,
             ) as stream:
-                stream.write(audio, blocking=True)
+                # OutputStream opened without `blocksize` is blocking already;
+                # write() has no `blocking=` kwarg (that belongs to sd.play()).
+                stream.write(audio)
             ok = True
             self._chunks_played += 1
         except Exception as exc:  # noqa: BLE001

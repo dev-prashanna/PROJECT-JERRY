@@ -55,6 +55,8 @@ class WhisperEngine:
         self._infer_lock = threading.Lock()
         self._last_error: Optional[str] = None
         self._transcriptions = 0
+        #: Set to "cpu" after a CUDA backend failure so later loads skip the GPU.
+        self._device_override: Optional[str] = None
 
     # -- introspection ---------------------------------------------------
     @property
@@ -84,6 +86,8 @@ class WhisperEngine:
 
     # -- loading ---------------------------------------------------------
     def _resolve_device(self) -> str:
+        if self._device_override:
+            return self._device_override
         pref = (self.settings.device or "auto").lower()
         if pref in {"cuda", "gpu"}:
             return "cuda"
@@ -190,39 +194,23 @@ class WhisperEngine:
             language = None
 
         try:
-            with self._infer_lock, _stage(metrics, "whisper_transcribe"):
-                segments_iter, info = self._model.transcribe(
-                    audio,
-                    language=language,
-                    beam_size=1,
-                    vad_filter=self.settings.vad_enabled,
-                    vad_parameters={
-                        "threshold": self.settings.vad_threshold,
-                        "min_silence_duration_ms": 300,
-                    },
-                    condition_on_previous_text=False,
-                    temperature=0.0,
-                    hotwords=None,
-                )
-                segments = []
-                parts = []
-                for seg in segments_iter:
-                    text = (seg.text or "").strip()
-                    if text:
-                        parts.append(text)
-                    segments.append(
-                        {
-                            "start": round(seg.start, 2),
-                            "end": round(seg.end, 2),
-                            "text": text,
-                            "no_speech_prob": round(getattr(seg, "no_speech_prob", 0.0), 3),
-                            "avg_logprob": round(getattr(seg, "avg_logprob", 0.0), 3),
-                        }
-                    )
+            segments, parts, info = self._invoke(audio, language, metrics)
         except Exception as exc:  # noqa: BLE001
-            self._last_error = str(exc)
-            log.exception("whisper transcription failed")
-            return TranscriptionResult(text="", error=str(exc))
+            if _is_cuda_backend_error(exc) and self._info.get("device") == "cuda":
+                log.warning(
+                    "whisper CUDA backend unusable (%s); reloading on CPU", exc
+                )
+                self._fallback_to_cpu()
+                try:
+                    segments, parts, info = self._invoke(audio, language, metrics)
+                except Exception as retry_exc:  # noqa: BLE001
+                    self._last_error = str(retry_exc)
+                    log.exception("whisper transcription failed")
+                    return TranscriptionResult(text="", error=str(retry_exc))
+            else:
+                self._last_error = str(exc)
+                log.exception("whisper transcription failed")
+                return TranscriptionResult(text="", error=str(exc))
 
         latency = time.perf_counter() - started
         text = " ".join(parts).strip()
@@ -238,6 +226,49 @@ class WhisperEngine:
             device=self.device,
             is_empty=not bool(text),
         )
+
+    def _invoke(self, audio: np.ndarray, language: Optional[str], metrics):
+        """Run one model pass and materialise every segment."""
+        self.load()
+        with self._infer_lock, _stage(metrics, "whisper_transcribe"):
+            segments_iter, info = self._model.transcribe(
+                audio,
+                language=language,
+                beam_size=1,
+                vad_filter=self.settings.vad_enabled,
+                vad_parameters={
+                    "threshold": self.settings.vad_threshold,
+                    "min_silence_duration_ms": 300,
+                },
+                condition_on_previous_text=False,
+                temperature=0.0,
+                hotwords=None,
+            )
+            segments = []
+            parts = []
+            for seg in segments_iter:
+                text = (seg.text or "").strip()
+                if text:
+                    parts.append(text)
+                segments.append(
+                    {
+                        "start": round(seg.start, 2),
+                        "end": round(seg.end, 2),
+                        "text": text,
+                        "no_speech_prob": round(getattr(seg, "no_speech_prob", 0.0), 3),
+                        "avg_logprob": round(getattr(seg, "avg_logprob", 0.0), 3),
+                    }
+                )
+        return segments, parts, info
+
+    def _fallback_to_cpu(self) -> None:
+        """Drop the CUDA model and force every future load onto the CPU."""
+        self.unload()
+        self._device_override = "cpu"
+
+    def close(self) -> None:
+        """Alias used by the agent's shutdown path."""
+        self.unload()
 
     def warmup(self) -> float:
         """Run one tiny transcription so the first real request is not cold."""
@@ -278,6 +309,25 @@ class _stage:
     def __exit__(self, *exc):
         if self.metrics:
             self.metrics.stop(self.name)
+
+
+def _is_cuda_backend_error(exc: BaseException) -> bool:
+    """True when a failure means the CUDA libraries could not be used."""
+    text = str(exc).lower()
+    markers = (
+        "libcublas",
+        "libcudart",
+        "libcufft",
+        "libcurand",
+        "libcusparse",
+        "cuda driver",
+        "cuda_error",
+        "invalid device function",
+        "no cuda",
+        "cannot load",
+        "not found or cannot be loaded",
+    )
+    return isinstance(exc, RuntimeError) and any(m in text for m in markers)
 
 
 def _resample(samples: np.ndarray, src: int, dst: int) -> np.ndarray:

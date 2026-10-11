@@ -107,6 +107,97 @@ _LIMITATION_PATTERNS = [
     r"\b(take a (photo|picture|selfie)|record (a )?video|upload (this|the) image)\b",
 ]
 
+# -- Multimodal Memory System (checked before visual patterns) ------------
+
+_LEARN_IDENTITY_PATTERNS = [
+    r"\b(please\s+)?(remember|learn|save|store|enroll)(\s+my)?\s+(face|identity|face under)\b",
+    r"\b(remember|learn)\s+me\s+as\b",
+    r"\bmy name is .{1,40}\b(remember|save|learn)\b",
+    r"\b(remember|learn|save)\b.{0,20}\b(my face|my identity)\b",
+    r"\benroll me\b",
+]
+
+_LEARN_OBJECT_PATTERNS = [
+    r"\b(remember|learn|save|store|note)\s+(this|that|the)\s+\w+\s+as\b",
+    r"\b(remember|learn|save|store)\s+(this|that)\s+(object|device|thing|item|board|circuit)\b",
+    r"\bcall\s+(this|that)\s+\w*\s*\w*\s*(my|the)\b",
+    r"\bremember\s+this\s+as\b",
+    r"\bsave\s+this\s+object\s+as\b",
+]
+
+_REMEMBER_FACT_PATTERNS = [
+    r"\b(please\s+)?(remember|note|save|store|memorize)(\s+that)?\b",
+    r"\bmy name is\b",
+    r"\bi am\b(?!\s+(not|going|trying))",
+    r"\bi'?m\b(?=\s+[A-Z])",
+    r"\bcall me\b",
+    r"\bmy (robot|project|robotics project|controller|board|device)\b.{0,20}\b(called|named|is)\b",
+    r"\bi (have|own|built|made|created|designed)\b",
+    # third-person name assertions: "the person's name is X", "his name is X"
+    r"\b(person'?s|guy'?s|man'?s|woman'?s|lady'?s|gentleman'?s|his|her|their|someone'?s)\s+name\s+is\b",
+    r"\b(he|she|they)\s+(is|goes by|is called|is named)\s+[A-Z]",
+]
+
+_CORRECT_MEMORY_PATTERNS = [
+    r"\b(actually|correction|no longer|used to be|is now called|is now named|rename)\b",
+    r"\b(change|update)\b.{0,30}\b(to|from)\b",
+    r"\bthe (project|robot|name) is now\b",
+]
+
+_FORGET_MEMORY_PATTERNS = [
+    r"\b(forget|delete|remove|erase)\b.{0,30}\b(my face|my identity|that fact|that memory|what you remember|everything you know)\b",
+    r"\bforget (about )?(me|my)\b",
+    r"\bdelete (my|the) (face|identity|memory|facts?)\b",
+    r"\bremove (my|the) (face|identity)\b",
+]
+
+_QUERY_MEMORY_PATTERNS = [
+    r"\b(do you (remember|recall|know)|did you (remember|recall))\b",
+    r"\b(who am i|what is my name)\b",
+    r"\bwhat did i (tell you|say)\b",
+    r"\bwhat (do you know|have you learned) about\b",
+    r"\bdo you recognise me\b",
+    r"\bdo you recognize me\b",
+    r"\b(anything|what) (about )?(my|the) (face|name|project|robot)\b",
+    r"\bwho (is|do you think) i am\b",
+]
+
+_LIST_MEMORIES_PATTERNS = [
+    r"\b(show|list|what are)\b.{0,30}\b(memories|facts|things you remember|what you remember)\b",
+    r"\bwhat do you remember\b",
+    r"\bshow what you remember\b",
+]
+
+# -- Persistent Episodic & Conversational Memory (PECM) ---------------------
+# Historical questions about something *seen or said earlier* — answered from
+# the durable event log without requiring a fresh camera frame.
+
+_RECALL_VISUAL_PATTERNS = [
+    r"\bwhat colou?r (was|were) the\b",
+    r"\bwhat (did|was) you (see|observe|notice) (earlier|before|previously|last|a moment ago)\b",
+    r"\b(earlier|previously|before|last time|a moment ago)\b.{0,40}\b(colou?r|see|observe|look)\b",
+    r"\b(colou?r|see|observe|look)\b.{0,40}\b(earlier|previously|before|last time)\b",
+    r"\bwhen the camera was (off|disabled|unavailable)\b",
+    r"\bwhat did the camera see\b",
+    r"\bwhat (was|is) (the|that|that thing|the object|my).{0,25}(colou?r|shape|size)\b.{0,20}\b(earlier|before|last|previously)\b",
+    r"\bwhat did you last (see|observe)\b",
+    r"\brepeat (what|that) you (saw|observed|noticed)\b",
+    r"\bwhat was on (the|that) (table|desk|shelf) (earlier|before|previously)\b",
+    r"\bdo you (still )?remember (seeing|what you saw|the color|what was there)\b",
+]
+
+_RECALL_MEMORY_PATTERNS = [
+    r"\bwhat did you (say|tell me|answer) (earlier|before|previously|last|a moment ago|just now)\b",
+    r"\b(earlier|previously|before|last time|a moment ago)\b.{0,40}\b(did you say|tell me|answer|say)\b",
+    r"\b(say|tell me|answer)\b.{0,40}\b(earlier|previously|before|last time)\b",
+    r"\bwhat (was|were) you (saying|talking about) (earlier|before|previously)\b",
+    r"\bcan you (repeat|recall) (that|what you said|your last answer)\b",
+    r"\bwhat did we (discuss|talk about|cover)\b",
+    r"\bremind me (of|about) (what|that|the thing)\b.{0,30}\b(earlier|before|said|discussed)\b",
+    r"\bwhat happened (earlier|before|previously|last)\b",
+    r"\bwalk me through (what|the) (happened|was said|we discussed)\b.{0,20}\b(earlier|before)\b",
+]
+
 
 def _matches_any(text: str, patterns: list[str]) -> Optional[re.Match]:
     for p in patterns:
@@ -114,6 +205,30 @@ def _matches_any(text: str, patterns: list[str]) -> Optional[re.Match]:
         if m:
             return m
     return None
+
+
+def _object_name_from(transcript: str) -> str:
+    """Pull the user-provided object name out of an enrolment utterance."""
+    patterns = [
+        # "Remember this object: my custom motor controller"
+        r"(?:remember|learn|save|store|note|call)\s+(?:this|that|the)\s+\w+\s*[:\-–]\s*(.+)$",
+        # "remember this as my motor controller"
+        r"(?:remember|learn|save|store)\s+(?:this|that)\s+as\s+(.+)$",
+        # "remember this object my motor controller" / "... object called X"
+        r"(?:remember|learn|save|store)\s+(?:this|that|the)\s+(?:object|device|thing|item|board|circuit)\s+(?:called|named)?\s+([A-Za-z].+)$",
+        # legacy: "... this <word> as <name>"
+        r"(?:remember|learn|save|store|note|call)\s+(?:this|that|the)\s+\w+\s+as\s+(.+)$",
+        r"call\s+(?:this|that)\s+(?:my|the)\s+(.+)$",
+    ]
+    for pattern in patterns:
+        m = re.search(pattern, transcript, re.IGNORECASE)
+        if not m:
+            continue
+        name = m.group(1).strip().rstrip(".!?").strip()
+        name = re.sub(r"\b(please|for me)\b\.?$", "", name, flags=re.IGNORECASE).strip()
+        if name and re.search(r"[A-Za-z]", name):
+            return name[:120]
+    return "unnamed object"
 
 
 class DeterministicRouter:
@@ -152,6 +267,11 @@ class DeterministicRouter:
                 confidence=0.95,
                 rationale="capability outside the allowed tool set",
             )
+
+        # 1b. Multimodal memory operations.
+        memory = self._route_memory(lowered, text)
+        if memory is not None:
+            return memory
 
         # 2. Open scene description.
         if _matches_any(lowered, _SCENE_PATTERNS):
@@ -222,6 +342,133 @@ class DeterministicRouter:
             router=self.name,
             error="no confident deterministic route",
         )
+
+    def _route_memory(self, lowered: str, original: str) -> Optional[RouteDecision]:
+        """High-precision memory routing; None when no pattern matches."""
+        # Historical visual recall — before the live-visual patterns so
+        # "what color was the curtain earlier" never requests the camera.
+        if _matches_any(lowered, _RECALL_VISUAL_PATTERNS):
+            return self._simple(
+                Intent.RECALL_VISUAL_MEMORY,
+                "recall_visual_memory",
+                {"query": original, "transcript": original},
+                0.93,
+                "historical visual observation recall from durable event log",
+            )
+
+        if _matches_any(lowered, _RECALL_MEMORY_PATTERNS):
+            return self._simple(
+                Intent.RECALL_MEMORY,
+                "recall_memory",
+                {"query": original, "transcript": original},
+                0.93,
+                "historical conversation recall from durable event log",
+            )
+
+        # Enrolment of an identity — explicit, consent-bearing.
+        if _matches_any(lowered, _LEARN_IDENTITY_PATTERNS):
+            return RouteDecision(
+                plan=RoutePlan.model_validate(
+                    {
+                        "intent": Intent.LEARN_IDENTITY,
+                        "requires_camera": True,
+                        "requires_vlm": False,
+                        "tool": "remember_identity",
+                        "tool_arguments": {
+                            "transcript": original,
+                            "capture_mode": "fresh",
+                        },
+                        "normalized_question": original,
+                        "confidence": 0.96,
+                        "rationale": "explicit face enrollment request",
+                    }
+                ),
+                router=self.name,
+            )
+
+        # Enrolment of a visual object.
+        if _matches_any(lowered, _LEARN_OBJECT_PATTERNS):
+            name = _object_name_from(original)
+            return RouteDecision(
+                plan=RoutePlan.model_validate(
+                    {
+                        "intent": Intent.LEARN_VISUAL_OBJECT,
+                        "requires_camera": True,
+                        "requires_vlm": False,
+                        "tool": "learn_visual_object",
+                        "tool_arguments": {
+                            "object_name": name,
+                            "transcript": original,
+                            "capture_mode": "fresh",
+                        },
+                        "normalized_question": original,
+                        "confidence": 0.95,
+                        "rationale": "explicit object enrollment request",
+                    }
+                ),
+                router=self.name,
+            )
+
+        # Corrections take priority over plain remember/query.
+        if _matches_any(lowered, _CORRECT_MEMORY_PATTERNS) and (
+            _matches_any(lowered, _REMEMBER_FACT_PATTERNS)
+            or "project" in lowered
+            or "robot" in lowered
+            or "name" in lowered
+        ):
+            return self._simple(
+                Intent.CORRECT_MEMORY,
+                "correct_memory",
+                {"transcript": original},
+                0.93,
+                "correction of previously stored information",
+            )
+
+        if _matches_any(lowered, _FORGET_MEMORY_PATTERNS):
+            return self._simple(
+                Intent.FORGET_MEMORY,
+                "forget_memory",
+                {"transcript": original},
+                0.94,
+                "explicit deletion request",
+            )
+
+        if _matches_any(lowered, _LIST_MEMORIES_PATTERNS):
+            return self._simple(
+                Intent.LIST_MEMORIES,
+                "list_memories",
+                {},
+                0.93,
+                "request to list stored memories",
+            )
+
+        if _matches_any(lowered, _QUERY_MEMORY_PATTERNS):
+            tool_args = {"query": original}
+            decision = self._simple(
+                Intent.QUERY_MEMORY,
+                "query_memory",
+                tool_args,
+                0.94,
+                "question about stored memories",
+            )
+            if _matches_any(lowered, [r"\b(recognise|recognize) me\b", r"\bwho am i\b"]) or (
+                "face" in lowered and _matches_any(lowered, [r"\b(do you|who)\b"])
+            ):
+                decision.plan.requires_camera = True
+                decision.plan.requires_vlm = False
+                decision.plan.tool = "recognize_person"
+            return decision
+
+        if _matches_any(lowered, _REMEMBER_FACT_PATTERNS):
+            return self._simple(
+                Intent.REMEMBER_FACT,
+                "remember_fact",
+                {"transcript": original},
+                0.93,
+                "explicit request to remember a fact",
+            )
+
+        return None
 
     # -- helpers ---------------------------------------------------------
     @staticmethod

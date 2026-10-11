@@ -174,9 +174,10 @@ class FakeVLM:
 
 
 class FakeSTT:
-    def __init__(self, text: str = "", fail: bool = False):
+    def __init__(self, text: str = "", fail: bool = False, error: str = "fake stt failure"):
         self.text = text
         self.fail = fail
+        self.error = error
         self.calls = 0
 
     def load(self):
@@ -185,7 +186,7 @@ class FakeSTT:
     def transcribe(self, samples, sample_rate=16000, metrics=None, **kwargs) -> TranscriptionResult:
         self.calls += 1
         if self.fail:
-            return TranscriptionResult(text="", error="fake stt failure")
+            return TranscriptionResult(text="", error=self.error)
         duration = len(samples) / float(sample_rate or 16000)
         return TranscriptionResult(
             text=self.text,
@@ -255,7 +256,7 @@ class FakePlayer:
 # ---------------------------------------------------------------------------
 
 @pytest.fixture(autouse=True)
-def _isolated_settings(monkeypatch):
+def _isolated_settings(monkeypatch, tmp_path):
     """Deterministic settings for every test; no .env surprises."""
     monkeypatch.setenv("GROQ_API_KEY", "gsk_test_dummy_key_not_real")
     monkeypatch.setenv("GROQ_MODEL", "fake-model")
@@ -263,6 +264,11 @@ def _isolated_settings(monkeypatch):
     monkeypatch.setenv("RESPONSE_STRATEGY", "auto")
     monkeypatch.setenv("AURA_OFFLINE", "0")
     monkeypatch.setenv("MEMORY_TURNS", "8")
+    # MMS off by default so the existing suite never touches a real DB.
+    monkeypatch.setenv("MEMORY_ENABLED", "0")
+    monkeypatch.setenv("MEMORY_DB_PATH", str(tmp_path / "memory" / "aura_memory.db"))
+    monkeypatch.setenv("MEMORY_ASSET_DIR", str(tmp_path / "memory" / "assets"))
+    monkeypatch.setenv("MEMORY_BACKGROUND_INDEXING", "0")
     reset_settings_cache()
     yield
     reset_settings_cache()

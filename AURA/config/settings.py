@@ -336,6 +336,121 @@ class TTSSettings:
 
 
 @dataclass(frozen=True)
+class MemorySettings:
+    """Multimodal Memory System (MMS) configuration.
+
+    Face recognition defaults to disabled; object memory and fact memory
+    are on.  Database and assets live under ``~/.aura/memory`` by default.
+    """
+
+    enabled: bool = field(default_factory=lambda: _get_bool("MEMORY_ENABLED", True))
+    db_path: str = field(
+        default_factory=lambda: _get("MEMORY_DB_PATH", "~/.aura/memory/aura_memory.db")
+    )
+    asset_dir: str = field(
+        default_factory=lambda: _get("MEMORY_ASSET_DIR", "~/.aura/memory/visual_assets")
+    )
+    vector_backend: str = field(default_factory=lambda: _get("MEMORY_VECTOR_BACKEND", "numpy"))
+
+    face_recognition_enabled: bool = field(
+        default_factory=lambda: _get_bool("FACE_RECOGNITION_ENABLED", False)
+    )
+    face_backend: str = field(default_factory=lambda: _get("FACE_BACKEND", "auto"))
+    face_model_dir: str = field(
+        default_factory=lambda: _get("FACE_MODEL_DIR", "~/.aura/models/face")
+    )
+    face_download_models: bool = field(
+        default_factory=lambda: _get_bool("FACE_DOWNLOAD_MODELS", True)
+    )
+    face_match_threshold: float = field(
+        default_factory=lambda: _get_float("FACE_MATCH_THRESHOLD", 0.55)
+    )
+    face_ambiguity_margin: float = field(
+        default_factory=lambda: _get_float("FACE_AMBIGUITY_MARGIN", 0.05)
+    )
+
+    object_memory_enabled: bool = field(
+        default_factory=lambda: _get_bool("OBJECT_MEMORY_ENABLED", True)
+    )
+    object_embedder: str = field(default_factory=lambda: _get("OBJECT_EMBEDDER", "auto"))
+    object_embedder_device: str = field(
+        default_factory=lambda: _get("OBJECT_EMBEDDER_DEVICE", "cpu")
+    )
+    object_novelty_threshold: float = field(
+        default_factory=lambda: _get_float("OBJECT_NOVELTY_THRESHOLD", 0.65)
+    )
+    object_grounder: str = field(default_factory=lambda: _get("OBJECT_GROUNDER", "auto"))
+    object_segmentation_backend: str = field(
+        default_factory=lambda: _get("OBJECT_SEGMENTATION_BACKEND", "auto")
+    )
+    clip_allow_download: bool = field(
+        default_factory=lambda: _get_bool("MEMORY_CLIP_ALLOW_DOWNLOAD", False)
+    )
+
+    background_indexing: bool = field(
+        default_factory=lambda: _get_bool("MEMORY_BACKGROUND_INDEXING", True)
+    )
+    max_pending_jobs: int = field(default_factory=lambda: _get_int("MEMORY_MAX_PENDING_JOBS", 16))
+    auto_learn_facts: bool = field(default_factory=lambda: _get_bool("MEMORY_AUTO_LEARN_FACTS", True))
+    use_llm_fact_extraction: bool = field(
+        default_factory=lambda: _get_bool("MEMORY_LLM_FACT_EXTRACTION", True)
+    )
+
+    persist_raw_frames: bool = field(
+        default_factory=lambda: _get_bool("MEMORY_PERSIST_RAW_FRAMES", False)
+    )
+    persist_audio: bool = field(default_factory=lambda: _get_bool("MEMORY_PERSIST_AUDIO", False))
+    require_enrollment_confirmation: bool = field(
+        default_factory=lambda: _get_bool("MEMORY_REQUIRE_ENROLLMENT_CONFIRMATION", True)
+    )
+    snapshot_freshness_s: float = field(
+        default_factory=lambda: _get_float("MEMORY_SNAPSHOT_FRESHNESS_S", 5.0)
+    )
+
+    max_retrieved_facts: int = field(default_factory=lambda: _get_int("MEMORY_MAX_RETRIEVED_FACTS", 10))
+    max_retrieved_entities: int = field(
+        default_factory=lambda: _get_int("MEMORY_MAX_RETRIEVED_ENTITIES", 5)
+    )
+    context_token_budget: int = field(
+        default_factory=lambda: _get_int("MEMORY_CONTEXT_TOKEN_BUDGET", 600)
+    )
+
+    # -- Persistent Episodic & Conversational Memory (PECM) ---------------
+    conversation_memory_enabled: bool = field(
+        default_factory=lambda: _get_bool("CONVERSATION_MEMORY_ENABLED", True)
+    )
+    episodic_memory_enabled: bool = field(
+        default_factory=lambda: _get_bool("EPISODIC_MEMORY_ENABLED", True)
+    )
+    memory_fts_enabled: bool = field(
+        default_factory=lambda: _get_bool("MEMORY_FTS_ENABLED", True)
+    )
+    memory_semantic_search_enabled: bool = field(
+        default_factory=lambda: _get_bool("MEMORY_SEMANTIC_SEARCH_ENABLED", True)
+    )
+    memory_text_embedding_model: str = field(
+        default_factory=lambda: _get("MEMORY_TEXT_EMBEDDING_MODEL", "BAAI/bge-small-en-v1.5")
+    )
+    memory_text_embedder: str = field(
+        default_factory=lambda: _get("MEMORY_TEXT_EMBEDDER", "auto")
+    )
+    memory_recent_turns: int = field(default_factory=lambda: _get_int("MEMORY_RECENT_TURNS", 12))
+    memory_max_retrieval_results: int = field(
+        default_factory=lambda: _get_int("MEMORY_MAX_RETRIEVAL_RESULTS", 10)
+    )
+    memory_max_context_tokens: int = field(
+        default_factory=lambda: _get_int("MEMORY_MAX_CONTEXT_TOKENS", 800)
+    )
+    memory_allow_historical_vision_recall: bool = field(
+        default_factory=lambda: _get_bool("MEMORY_ALLOW_HISTORICAL_VISION_RECALL", True)
+    )
+    memory_rrf_k: int = field(default_factory=lambda: _get_int("MEMORY_RRF_K", 60))
+    memory_index_worker_batch: int = field(
+        default_factory=lambda: _get_int("MEMORY_INDEX_WORKER_BATCH", 16)
+    )
+
+
+@dataclass(frozen=True)
 class OrchestratorSettings:
     interaction_mode: str = field(default_factory=lambda: _get("INTERACTION_MODE", "ptt"))
     router_mode: str = field(default_factory=lambda: _get("ROUTER_MODE", "llm"))
@@ -360,6 +475,7 @@ class Settings:
     vlm: VLMSettings = field(default_factory=VLMSettings)
     tts: TTSSettings = field(default_factory=TTSSettings)
     orchestrator: OrchestratorSettings = field(default_factory=OrchestratorSettings)
+    memory: MemorySettings = field(default_factory=MemorySettings)
     log_level: str = field(default_factory=lambda: _get("AURA_LOG_LEVEL", "INFO"))
 
     # -- serialisation ----------------------------------------------------

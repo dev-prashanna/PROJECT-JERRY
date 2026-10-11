@@ -129,6 +129,43 @@ class TestTranscriptionValidation:
         assert result.ok is True and result.is_empty is False
 
 
+# ---------------------------------------------------------------------------
+# CUDA backend detection (the regression that silently killed every transcript)
+# ---------------------------------------------------------------------------
+
+class TestCudaBackendHandling:
+    def test_missing_cublas_is_recognised(self):
+        from src.speech.whisper_engine import _is_cuda_backend_error
+
+        exc = RuntimeError("Library libcublas.so.12 is not found or cannot be loaded")
+        assert _is_cuda_backend_error(exc)
+
+    def test_unrelated_errors_are_not_swallowed(self):
+        from src.speech.whisper_engine import _is_cuda_backend_error
+
+        assert not _is_cuda_backend_error(RuntimeError("context deadline exceeded"))
+        assert not _is_cuda_backend_error(ValueError("libcublas"))
+
+    def test_engine_exposes_close_and_cpu_override_sticks(self):
+        from src.speech.whisper_engine import WhisperEngine
+
+        engine = WhisperEngine()
+        engine._device_override = "cpu"
+        assert engine._resolve_device() == "cpu"
+        engine.close()  # no model loaded: must be a no-op
+        assert engine.is_loaded is False
+
+
+def test_ct2_library_probe_is_safe_and_typed():
+    from src.utils.device_manager import _ct2_library_dirs, _load_soname
+
+    dirs = _ct2_library_dirs()
+    assert isinstance(dirs, list)
+    assert all(str(d) for d in dirs)
+    # A soname that cannot exist on any machine must simply return False.
+    assert _load_soname("libdefinitely_not_a_real_library.so.0", dirs) is False
+
+
 def test_fake_stt_roundtrip():
     from tests.conftest import FakeSTT, recording
 

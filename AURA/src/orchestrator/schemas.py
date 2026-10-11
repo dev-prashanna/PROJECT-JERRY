@@ -30,11 +30,48 @@ class Intent(str, Enum):
     SYSTEM_STATUS = "system_status"
     FUTURE_CAPABILITY = "future_capability"
     UNSUPPORTED = "unsupported"
+    # Multimodal Memory System
+    LEARN_IDENTITY = "learn_identity"
+    LEARN_VISUAL_OBJECT = "learn_visual_object"
+    REMEMBER_FACT = "remember_fact"
+    QUERY_MEMORY = "query_memory"
+    CORRECT_MEMORY = "correct_memory"
+    FORGET_MEMORY = "forget_memory"
+    LIST_MEMORIES = "list_memories"
+    # Persistent Episodic & Conversational Memory (PECM)
+    RECALL_MEMORY = "recall_memory"
+    RECALL_VISUAL_MEMORY = "recall_visual_memory"
 
 
 #: Intents that require a fresh camera frame + VLM inference.
 VISUAL_INTENTS: frozenset[Intent] = frozenset(
     {Intent.VISUAL_QUESTION, Intent.SCENE_DESCRIPTION, Intent.OBJECT_REASONING}
+)
+
+#: Intents that require a fresh camera frame (memory operations, no VLM).
+MEMORY_CAMERA_INTENTS: frozenset[Intent] = frozenset(
+    {Intent.LEARN_IDENTITY, Intent.LEARN_VISUAL_OBJECT, Intent.QUERY_MEMORY}
+)
+
+#: Intents that interact with the persistent Multimodal Memory System.
+MEMORY_INTENTS: frozenset[Intent] = frozenset(
+    {
+        Intent.LEARN_IDENTITY,
+        Intent.LEARN_VISUAL_OBJECT,
+        Intent.REMEMBER_FACT,
+        Intent.QUERY_MEMORY,
+        Intent.CORRECT_MEMORY,
+        Intent.FORGET_MEMORY,
+        Intent.LIST_MEMORIES,
+        Intent.RECALL_MEMORY,
+        Intent.RECALL_VISUAL_MEMORY,
+    }
+)
+
+#: Historical recall that must work with the camera unavailable — never
+#: requests a fresh frame; answers come from the durable event log.
+VISUAL_RECALL_INTENTS: frozenset[Intent] = frozenset(
+    {Intent.RECALL_VISUAL_MEMORY}
 )
 
 #: Intents that never need the cloud LLM for the *routing* step alone.
