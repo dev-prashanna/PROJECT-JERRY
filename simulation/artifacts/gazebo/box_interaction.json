@@ -1,0 +1,31 @@
+{
+  "engine": "Gazebo Harmonic",
+  "box_mass_kg": 0.06,
+  "box_forward_displacement_m": 0.1459501925496092,
+  "physical_box_push_passed": true,
+  "before_debug_m": {
+    "movable_box": [
+      0.22,
+      3.1658809990439287e-19,
+      0.05999988255193438
+    ],
+    "vbmd": [
+      7.168765060408444e-19,
+      9.456083303219102e-19,
+      -8.619974816256837e-07
+    ]
+  },
+  "after_debug_m": {
+    "movable_box": [
+      0.3659501925496092,
+      -1.3865937467496711e-12,
+      0.059999990186195055
+    ],
+    "vbmd": [
+      0.22095019309264974,
+      -1.3217495778413889e-12,
+      -4.93904819992103e-09
+    ]
+  },
+  "poses_restored_after_test": true
+}

@@ -89,6 +89,9 @@ _STATUS_PATTERNS = [
     r"\b(camera|gpu|system|model) status\b",
     r"\bhow (are|is) you doing\b",
     r"\bwhat (are|is) your (capabilities|status)\b",
+    # face recognition is a startup setting — report it rather than refusing
+    r"\b(enable|disable|turn (on|off)|switch (on|off))\b.{0,20}\bface recognition\b",
+    r"\bis face recognition (on|off|enabled|disabled|working)\b",
 ]
 
 _REPEAT_PATTERNS = [
@@ -114,6 +117,24 @@ _LEARN_IDENTITY_PATTERNS = [
     r"\b(remember|learn)\s+me\s+as\b",
     r"\bmy name is .{1,40}\b(remember|save|learn)\b",
     r"\b(remember|learn|save)\b.{0,20}\b(my face|my identity)\b",
+    r"\benroll me\b",
+    # combined commands: "remember my name and face", "save my name and face"
+    r"\b(remember|learn|save|store|enroll)\b.{0,40}\b(face|identity)\b",
+]
+
+#: Utterances that *ask about* memory instead of commanding an enrollment.
+_ASKING_MEMORY_PATTERNS = [
+    r"\b(do|did|can|could|will|would|have|are|is|should)\s+you\s+(remember|recall|know|recognise|recognize)\b",
+    r"\b(did|do|have|should)\s+i\s+(tell|say|mention|ask|already)\b",
+    r"^(what|who|when|where|why|how)\b",
+    r"\b(is|are|do|does)\s+(face recognition|your face|the face)\b",
+]
+
+#: Markers that keep a question-like phrasing an enrollment command:
+#: "can you remember me as Alex", "can you remember my name is Alex".
+_ENROLL_NAME_PATTERNS = [
+    r"\b(remember|learn|save|enroll|call)\s+me\s+as\b",
+    r"\bmy name is\s+\S",
     r"\benroll me\b",
 ]
 
@@ -366,7 +387,12 @@ class DeterministicRouter:
             )
 
         # Enrolment of an identity — explicit, consent-bearing.
-        if _matches_any(lowered, _LEARN_IDENTITY_PATTERNS):
+        # "Do you remember my face?" is a question, not a command: only let a
+        # question-shaped utterance through when it carries an enrollment name.
+        if _matches_any(lowered, _LEARN_IDENTITY_PATTERNS) and (
+            not _matches_any(lowered, _ASKING_MEMORY_PATTERNS)
+            or _matches_any(lowered, _ENROLL_NAME_PATTERNS)
+        ):
             return RouteDecision(
                 plan=RoutePlan.model_validate(
                     {

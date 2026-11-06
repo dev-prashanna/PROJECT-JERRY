@@ -1,0 +1,240 @@
+{
+  "topics_received": {
+    "/camera/image_raw": 1401,
+    "safe_commands": 11940,
+    "/ultrasonic/rear": 757,
+    "/ultrasonic/right": 756,
+    "/ultrasonic/front": 756,
+    "map": 452,
+    "/ultrasonic/left": 756,
+    "/perception/depth_relative": 1258,
+    "yolo_frames": 618,
+    "object_boxes": 19
+  },
+  "states": {
+    "STOP": 242,
+    "LOOK_AROUND": 613,
+    "RECOVERING": 102,
+    "ALIGN": 515,
+    "EXPLORE": 3010,
+    "TRACKING_BRIDGE": 38,
+    "RELOCALIZE": 28,
+    "ARRIVING": 59,
+    "ARRIVED": 123,
+    "TURN": 23,
+    "PLANNING": 20
+  },
+  "motion_commands": {
+    "rotation": 6836,
+    "translation": 7510
+  },
+  "actual_path_length_m": 5.665006293436658,
+  "actual_exploration_extent_m": 3.1933530959826264,
+  "autonomous_curiosity_path_length_m": 5.665006293436658,
+  "states_by_destination": {
+    "1": {
+      "ALIGN": 277,
+      "STOP": 45,
+      "RECOVERING": 30,
+      "EXPLORE": 879,
+      "TRACKING_BRIDGE": 17,
+      "RELOCALIZE": 7,
+      "ARRIVING": 23,
+      "ARRIVED": 50
+    },
+    "2": {
+      "ALIGN": 238,
+      "STOP": 4,
+      "RECOVERING": 30,
+      "RELOCALIZE": 17,
+      "EXPLORE": 1050,
+      "TRACKING_BRIDGE": 7,
+      "ARRIVING": 11,
+      "TURN": 23,
+      "ARRIVED": 28
+    },
+    "3": {
+      "EXPLORE": 1081,
+      "PLANNING": 20,
+      "STOP": 25,
+      "RECOVERING": 41,
+      "TRACKING_BRIDGE": 14,
+      "RELOCALIZE": 4,
+      "ARRIVING": 25,
+      "ARRIVED": 45,
+      "LOOK_AROUND": 459
+    }
+  },
+  "destinations": [
+    {
+      "goal_id": 1,
+      "goal": [
+        -1.5750000000000002,
+        0.125
+      ],
+      "completed_goals": 0,
+      "simulation_time_s": 21.404
+    },
+    {
+      "goal_id": 2,
+      "goal": [
+        0.07500000000000018,
+        -1.0749999999999993
+      ],
+      "completed_goals": 1,
+      "simulation_time_s": 70.033
+    },
+    {
+      "goal_id": 3,
+      "goal": [
+        1.4250000000000007,
+        -0.024999999999999467
+      ],
+      "completed_goals": 2,
+      "simulation_time_s": 124.278
+    }
+  ],
+  "destination_changes_without_arrival": [],
+  "max_normal_linear_acceleration_m_s2": 0.12000000000000006,
+  "max_normal_yaw_acceleration_rad_s2": 0.6000000000000004,
+  "states_after_model_warmup": {
+    "STOP": 175,
+    "LOOK_AROUND": 613,
+    "RECOVERING": 102,
+    "ALIGN": 515,
+    "EXPLORE": 3010,
+    "TRACKING_BRIDGE": 38,
+    "RELOCALIZE": 28,
+    "ARRIVING": 59,
+    "ARRIVED": 123,
+    "TURN": 23,
+    "PLANNING": 20
+  },
+  "localization_recovery_entries": 20,
+  "visual_processing_p95_ms": 50.67061000590911,
+  "visual_processing_max_ms": 159.91277300054207,
+  "depth_source_age_p95_s": 0.3452553502538649,
+  "depth_inference_p95_ms": 23.76258373260498,
+  "stop_reasons_after_model_warmup": {
+    "Warming the YOLO detector; movement held until live perception is ready": 100,
+    "Depth prediction stale": 75
+  },
+  "longest_stationary_command_s": 4.946446620997449,
+  "observed_area_first_m2": 1.4200000423192982,
+  "observed_area_last_m2": 10.76750032089651,
+  "last_state": {
+    "active": true,
+    "simulation_time_s": 192.2,
+    "mode": "explore",
+    "attitude": {
+      "roll_deg": -0.011581219222979633,
+      "pitch_deg": -0.04155474136697607,
+      "yaw_deg": -113.9931994420496,
+      "heading_deg": 203.99319944204962,
+      "acceleration_m_s2": [
+        0.03832940414086575,
+        -0.00015283527102777535,
+        9.797649921333162
+      ],
+      "angular_velocity_deg_s": [
+        0.10106745569055729,
+        -0.06039830629633477,
+        9.39215960965738
+      ],
+      "magnetic_field_uT": [
+        -37.63286429709946,
+        -16.64132727065911,
+        12.43140724557323
+      ],
+      "ready": true,
+      "imu_age_s": 0.010161134996451437,
+      "mag_age_s": 0.0004458780022105202
+    },
+    "mapping": {
+      "x_m": 1.442862980486717,
+      "y_m": -0.08783055281335268,
+      "vo_inliers": 72,
+      "observed_m2": 10.770000000000001,
+      "loop_closures": 0
+    },
+    "state": "LOOK_AROUND",
+    "reason": "Curious scan: looking for new reachable space",
+    "linear_m_s": 0.0,
+    "yaw_rad_s": 0.25,
+    "depth_unit": "relative inverse depth, not metres",
+    "depth_age_wall_s": 0.12213599099777639,
+    "depth_age_sensor_s": 0.09999999999998863,
+    "inference_ms": 21.76523208618164,
+    "preprocess_ms": 4.179477691650391,
+    "postprocess_ms": 0.5166530609130859,
+    "scores": [
+      0.11862122267484665,
+      0.12075038999319077,
+      0.12138282507658005
+    ],
+    "near_coverage": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "ultrasound_m": {
+      "front": 1.357934832572937,
+      "left": 0.5266881585121155,
+      "rear": 0.3075839877128601,
+      "right": 0.3998027741909027
+    },
+    "ultrasound_age_s": {
+      "front": 0.18440137199650053,
+      "left": 0.1098266289991443,
+      "rear": 0.020679702000052202,
+      "right": 0.2741246820005472
+    },
+    "frame_id": 1456,
+    "suggested_state": "LOOK_AROUND",
+    "suggested_reason": "Curious scan: looking for new reachable space",
+    "suggested_linear_m_s": 0.0,
+    "suggested_yaw_rad_s": 0.25,
+    "start_requested": true,
+    "arming": false,
+    "command_time_s": 56905.710298793,
+    "target_linear_m_s": 0.0,
+    "target_yaw_rad_s": 0.25,
+    "objects": {
+      "status": "yolo11n ready on CUDA:0",
+      "age_s": 0.7551617499993881,
+      "frames": 618,
+      "count": 2
+    },
+    "slam": {
+      "pose": [
+        1.442862980486717,
+        -0.08783055281335268,
+        -2.00406567877861
+      ],
+      "ready": true,
+      "status": "TRACKING \u00b7 flat-floor visual/compass SLAM",
+      "inliers": 72,
+      "good_streak": 296,
+      "trusted_pose_age_s": 0.09999999999999432,
+      "processing_ms": 42.93214899371378,
+      "keyframes": 115,
+      "loop_closures": 0,
+      "observed_m2": 10.770000000000001,
+      "free_m2": 8.997500000000002,
+      "goal": null,
+      "goal_id": 3,
+      "completed_goals": 3,
+      "goal_distance_m": null,
+      "route_revision": 5,
+      "planner_state": "NO_REACHABLE_FRONTIER",
+      "interest": "No reachable unfamiliar destination; observing from here",
+      "visited_places": 31,
+      "age_s": 0.05240524099644972,
+      "revision": 1455,
+      "plan_ready": true,
+      "plan_age_s": 0.6663695189999999
+    }
+  },
+  "scene_poses_used_only_for_evaluation": true,
+  "errors": []
+}

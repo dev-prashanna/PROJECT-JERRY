@@ -221,6 +221,10 @@ class LLMSettings:
             "LLM_MAX_COMPLETION_TOKENS", _get_int("GROQ_MAX_COMPLETION_TOKENS", 1024)
         )
     )
+    #: Sampling temperature for spoken responses (routing stays at 0.0).
+    response_temperature: float = field(
+        default_factory=lambda: _get_float("LLM_RESPONSE_TEMPERATURE", 0.7)
+    )
 
     @property
     def available(self) -> bool:
@@ -351,6 +355,11 @@ class MemorySettings:
         default_factory=lambda: _get("MEMORY_ASSET_DIR", "~/.aura/memory/visual_assets")
     )
     vector_backend: str = field(default_factory=lambda: _get("MEMORY_VECTOR_BACKEND", "numpy"))
+    gemini_api_key: str = field(default_factory=lambda: _get("GEMINI_API_KEY", ""), repr=False)
+    gemini_model: str = field(default_factory=lambda: _get("MEMORY_GEMINI_MODEL", "gemini-3.8-flash"))
+    gemini_timeout_s: float = field(default_factory=lambda: _get_float("MEMORY_GEMINI_TIMEOUT", 8.0))
+    gemini_enabled: bool = field(default_factory=lambda: _get_bool("MEMORY_GEMINI_ENABLED", True))
+
 
     face_recognition_enabled: bool = field(
         default_factory=lambda: _get_bool("FACE_RECOGNITION_ENABLED", False)
@@ -489,7 +498,7 @@ class Settings:
                 continue
             for f in fields(sec):
                 value = getattr(sec, f.name)
-                if redact_secrets and f.name in {"api_key"} and value:
+                if redact_secrets and f.name.endswith("api_key") and value:
                     value = f"<redacted len={len(value)}>"
                 out[f"{sec_name}.{f.name}"] = value
         if redact_secrets:

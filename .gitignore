@@ -49,3 +49,11 @@ esp32-cam-streamer/include/secrets.h
 .idea/
 .DS_Store
 Thumbs.db
+
+# VBMD local simulation environment and ROS build output
+.venv-vbmd-sim/
+.venv-jerry/
+.cache/yolo/
+simulation/ros2_ws/build/
+simulation/ros2_ws/install/
+simulation/ros2_ws/log/

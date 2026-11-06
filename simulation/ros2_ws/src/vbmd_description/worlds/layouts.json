@@ -1,0 +1,575 @@
+{
+  "practice": {
+    "seed": 7,
+    "obstacles": [
+      {
+        "name": "obstacle_0",
+        "center_m": [
+          0.85,
+          0.08,
+          0.13
+        ],
+        "footprint_half_extents_m": [
+          0.12,
+          0.15
+        ],
+        "height_m": 0.26
+      },
+      {
+        "name": "obstacle_1",
+        "center_m": [
+          -0.65,
+          0.5,
+          0.1
+        ],
+        "footprint_half_extents_m": [
+          0.1,
+          0.1
+        ],
+        "height_m": 0.2
+      },
+      {
+        "name": "obstacle_2",
+        "center_m": [
+          0.2,
+          -0.65,
+          0.18
+        ],
+        "footprint_half_extents_m": [
+          0.08,
+          0.11
+        ],
+        "height_m": 0.36
+      },
+      {
+        "name": "obstacle_3",
+        "center_m": [
+          1.15,
+          0.75,
+          0.08
+        ],
+        "footprint_half_extents_m": [
+          0.16,
+          0.12
+        ],
+        "height_m": 0.16
+      },
+      {
+        "name": "movable_box",
+        "center_m": [
+          -0.45,
+          -0.55,
+          0.06
+        ],
+        "footprint_half_extents_m": [
+          0.06,
+          0.06
+        ],
+        "height_m": 0.12
+      },
+      {
+        "name": "barrel",
+        "center_m": [
+          -1.4,
+          -0.7,
+          0.175
+        ],
+        "footprint_half_extents_m": [
+          0.13,
+          0.13
+        ],
+        "height_m": 0.35
+      },
+      {
+        "name": "thin_post",
+        "center_m": [
+          1.55,
+          -0.95,
+          0.24
+        ],
+        "footprint_half_extents_m": [
+          0.035,
+          0.035
+        ],
+        "height_m": 0.48
+      },
+      {
+        "name": "low_corner_obstacle",
+        "center_m": [
+          -1.65,
+          1.15,
+          0.02
+        ],
+        "footprint_half_extents_m": [
+          0.14,
+          0.09
+        ],
+        "height_m": 0.04
+      },
+      {
+        "name": "short_divider",
+        "center_m": [
+          -0.25,
+          0.95,
+          0.18
+        ],
+        "footprint_half_extents_m": [
+          0.03,
+          0.15
+        ],
+        "height_m": 0.36
+      },
+      {
+        "name": "movable_crate",
+        "center_m": [
+          1.55,
+          0.35,
+          0.08
+        ],
+        "footprint_half_extents_m": [
+          0.08,
+          0.08
+        ],
+        "height_m": 0.16
+      },
+      {
+        "name": "table_leg_0",
+        "center_m": [
+          -1.5,
+          0.7,
+          0.19
+        ],
+        "footprint_half_extents_m": [
+          0.025,
+          0.025
+        ],
+        "height_m": 0.38
+      },
+      {
+        "name": "table_leg_1",
+        "center_m": [
+          -1.5,
+          1.0,
+          0.19
+        ],
+        "footprint_half_extents_m": [
+          0.025,
+          0.025
+        ],
+        "height_m": 0.38
+      },
+      {
+        "name": "table_leg_2",
+        "center_m": [
+          -1.0,
+          0.7,
+          0.19
+        ],
+        "footprint_half_extents_m": [
+          0.025,
+          0.025
+        ],
+        "height_m": 0.38
+      },
+      {
+        "name": "table_leg_3",
+        "center_m": [
+          -1.0,
+          1.0,
+          0.19
+        ],
+        "footprint_half_extents_m": [
+          0.025,
+          0.025
+        ],
+        "height_m": 0.38
+      }
+    ],
+    "free_cells": 12113,
+    "reachable_free_fraction": 1.0,
+    "footprint_inflation_m": 0.142,
+    "grid_resolution_m": 0.025
+  },
+  "validation": {
+    "seed": 21,
+    "obstacles": [
+      {
+        "name": "obstacle_0",
+        "center_m": [
+          0.8715999904647553,
+          0.0766560755291922,
+          0.13
+        ],
+        "footprint_half_extents_m": [
+          0.13311739755931407,
+          0.16027109627827155
+        ],
+        "height_m": 0.26
+      },
+      {
+        "name": "obstacle_1",
+        "center_m": [
+          -0.6524474177943497,
+          0.4499054022611476,
+          0.1
+        ],
+        "footprint_half_extents_m": [
+          0.11366253351534915,
+          0.11366253351534915
+        ],
+        "height_m": 0.2
+      },
+      {
+        "name": "obstacle_2",
+        "center_m": [
+          0.15552528330268672,
+          -0.6325757773892389,
+          0.18
+        ],
+        "footprint_half_extents_m": [
+          0.08197516508696037,
+          0.11142801849719096
+        ],
+        "height_m": 0.36
+      },
+      {
+        "name": "obstacle_3",
+        "center_m": [
+          1.1473076678007017,
+          0.8039198092078933,
+          0.08
+        ],
+        "footprint_half_extents_m": [
+          0.17549765127379577,
+          0.14162025031444483
+        ],
+        "height_m": 0.16
+      },
+      {
+        "name": "movable_box",
+        "center_m": [
+          -0.5262398943133104,
+          -0.5350101538584594,
+          0.06
+        ],
+        "footprint_half_extents_m": [
+          0.0626975503566167,
+          0.0626975503566167
+        ],
+        "height_m": 0.12
+      },
+      {
+        "name": "barrel",
+        "center_m": [
+          -1.4057792462534153,
+          -0.7698413724923885,
+          0.175
+        ],
+        "footprint_half_extents_m": [
+          0.13,
+          0.13
+        ],
+        "height_m": 0.35
+      },
+      {
+        "name": "thin_post",
+        "center_m": [
+          1.5322193624450844,
+          -0.9804941466735088,
+          0.24
+        ],
+        "footprint_half_extents_m": [
+          0.035,
+          0.035
+        ],
+        "height_m": 0.48
+      },
+      {
+        "name": "low_corner_obstacle",
+        "center_m": [
+          -1.6486859910550544,
+          1.1875316182660138,
+          0.02
+        ],
+        "footprint_half_extents_m": [
+          0.15184166882043043,
+          0.10984518494085195
+        ],
+        "height_m": 0.04
+      },
+      {
+        "name": "short_divider",
+        "center_m": [
+          -0.1737043676360579,
+          0.926836136657375,
+          0.18
+        ],
+        "footprint_half_extents_m": [
+          0.03867554281813014,
+          0.15149122453687588
+        ],
+        "height_m": 0.36
+      },
+      {
+        "name": "movable_crate",
+        "center_m": [
+          1.5847477717454326,
+          0.4124777736853437,
+          0.08
+        ],
+        "footprint_half_extents_m": [
+          0.0868262548929764,
+          0.0868262548929764
+        ],
+        "height_m": 0.16
+      },
+      {
+        "name": "table_leg_0",
+        "center_m": [
+          -1.5536080832266883,
+          0.7303627078748107,
+          0.19
+        ],
+        "footprint_half_extents_m": [
+          0.025,
+          0.025
+        ],
+        "height_m": 0.38
+      },
+      {
+        "name": "table_leg_1",
+        "center_m": [
+          -1.5536080832266883,
+          1.0303627078748108,
+          0.19
+        ],
+        "footprint_half_extents_m": [
+          0.025,
+          0.025
+        ],
+        "height_m": 0.38
+      },
+      {
+        "name": "table_leg_2",
+        "center_m": [
+          -1.0536080832266883,
+          0.7303627078748107,
+          0.19
+        ],
+        "footprint_half_extents_m": [
+          0.025,
+          0.025
+        ],
+        "height_m": 0.38
+      },
+      {
+        "name": "table_leg_3",
+        "center_m": [
+          -1.0536080832266883,
+          1.0303627078748108,
+          0.19
+        ],
+        "footprint_half_extents_m": [
+          0.025,
+          0.025
+        ],
+        "height_m": 0.38
+      }
+    ],
+    "free_cells": 11860,
+    "reachable_free_fraction": 1.0,
+    "footprint_inflation_m": 0.142,
+    "grid_resolution_m": 0.025
+  },
+  "test": {
+    "seed": 44,
+    "obstacles": [
+      {
+        "name": "obstacle_0",
+        "center_m": [
+          0.9513702526141965,
+          -0.010533619625275728,
+          0.13
+        ],
+        "footprint_half_extents_m": [
+          0.14157705424705042,
+          0.16662331564226895
+        ],
+        "height_m": 0.26
+      },
+      {
+        "name": "obstacle_1",
+        "center_m": [
+          -0.5613224766376532,
+          0.4821822142508722,
+          0.1
+        ],
+        "footprint_half_extents_m": [
+          0.12226278787378808,
+          0.12226278787378808
+        ],
+        "height_m": 0.2
+      },
+      {
+        "name": "obstacle_2",
+        "center_m": [
+          0.18130559215694608,
+          -0.7765651366916092,
+          0.18
+        ],
+        "footprint_half_extents_m": [
+          0.08738623336859619,
+          0.11524875470923912
+        ],
+        "height_m": 0.36
+      },
+      {
+        "name": "obstacle_3",
+        "center_m": [
+          1.0806012990838207,
+          0.8741762861389785,
+          0.08
+        ],
+        "footprint_half_extents_m": [
+          0.16993669255954758,
+          0.13361081127094893
+        ],
+        "height_m": 0.16
+      },
+      {
+        "name": "movable_box",
+        "center_m": [
+          -0.3652492484994445,
+          -0.5830142682712474,
+          0.06
+        ],
+        "footprint_half_extents_m": [
+          0.07336886215752707,
+          0.07336886215752707
+        ],
+        "height_m": 0.12
+      },
+      {
+        "name": "barrel",
+        "center_m": [
+          -1.5071973984349458,
+          -0.8354917272446434,
+          0.175
+        ],
+        "footprint_half_extents_m": [
+          0.13,
+          0.13
+        ],
+        "height_m": 0.35
+      },
+      {
+        "name": "thin_post",
+        "center_m": [
+          1.6585027803912729,
+          -0.8586416373781962,
+          0.24
+        ],
+        "footprint_half_extents_m": [
+          0.035,
+          0.035
+        ],
+        "height_m": 0.48
+      },
+      {
+        "name": "low_corner_obstacle",
+        "center_m": [
+          -1.741843852591144,
+          1.0600414141984746,
+          0.02
+        ],
+        "footprint_half_extents_m": [
+          0.14243729404810407,
+          0.0938402954186253
+        ],
+        "height_m": 0.04
+      },
+      {
+        "name": "short_divider",
+        "center_m": [
+          -0.28418184358968335,
+          0.9381305613474301,
+          0.18
+        ],
+        "footprint_half_extents_m": [
+          0.05482250908541921,
+          0.15290953779086222
+        ],
+        "height_m": 0.36
+      },
+      {
+        "name": "movable_crate",
+        "center_m": [
+          1.5968327725128773,
+          0.4739450271234295,
+          0.08
+        ],
+        "footprint_half_extents_m": [
+          0.0933727218286232,
+          0.0933727218286232
+        ],
+        "height_m": 0.16
+      },
+      {
+        "name": "table_leg_0",
+        "center_m": [
+          -1.5256099538087418,
+          0.7117521625492869,
+          0.19
+        ],
+        "footprint_half_extents_m": [
+          0.025,
+          0.025
+        ],
+        "height_m": 0.38
+      },
+      {
+        "name": "table_leg_1",
+        "center_m": [
+          -1.5256099538087418,
+          1.011752162549287,
+          0.19
+        ],
+        "footprint_half_extents_m": [
+          0.025,
+          0.025
+        ],
+        "height_m": 0.38
+      },
+      {
+        "name": "table_leg_2",
+        "center_m": [
+          -1.0256099538087418,
+          0.7117521625492869,
+          0.19
+        ],
+        "footprint_half_extents_m": [
+          0.025,
+          0.025
+        ],
+        "height_m": 0.38
+      },
+      {
+        "name": "table_leg_3",
+        "center_m": [
+          -1.0256099538087418,
+          1.011752162549287,
+          0.19
+        ],
+        "footprint_half_extents_m": [
+          0.025,
+          0.025
+        ],
+        "height_m": 0.38
+      }
+    ],
+    "free_cells": 11760,
+    "reachable_free_fraction": 1.0,
+    "footprint_inflation_m": 0.142,
+    "grid_resolution_m": 0.025
+  }
+}

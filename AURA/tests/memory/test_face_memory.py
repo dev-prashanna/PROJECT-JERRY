@@ -122,3 +122,23 @@ def test_multi_face_enrollment_refused(face_service):
         face_service.enroll_identity(
             "Alex", img, transcript="remember my face as Alex"
         )
+
+
+def test_engine_enroll_without_a_name_is_rejected(engine):
+    """An empty name must fail in the engine, not in pydantic validation."""
+    engine.face_service = FaceMemoryService(
+        engine.store, FakeFaceBackend(), FaceMatchThresholds()
+    )
+    res = engine.enroll_person(EnrollPersonRequest(entity_name="   ", frame=face_image()))
+    assert not res.ok
+    assert "no name" in (res.message or "").lower()
+
+
+def test_recognize_request_accepts_an_empty_name(engine):
+    """Recognition reuses EnrollPersonRequest, so an empty name must be legal."""
+    assert EnrollPersonRequest().entity_name == ""
+    engine.face_service = FaceMemoryService(
+        engine.store, FakeFaceBackend(), FaceMatchThresholds()
+    )
+    res = engine.recognize_faces(EnrollPersonRequest(frame=face_image(seed=1)))
+    assert res.ok

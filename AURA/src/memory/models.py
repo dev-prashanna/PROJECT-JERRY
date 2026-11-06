@@ -169,7 +169,9 @@ class MemoryContext(BaseModel):
 
 
 class EnrollPersonRequest(BaseModel):
-    entity_name: str = Field(min_length=1, max_length=120)
+    #: Empty on recognition passes (``recognize_faces``); the engine rejects
+    #: an empty name when the request is an actual enrollment.
+    entity_name: str = Field(default="", max_length=120)
     frame: Any = None
     snapshot: Optional[SnapshotReference] = None
     selected_face_id: Optional[str] = None

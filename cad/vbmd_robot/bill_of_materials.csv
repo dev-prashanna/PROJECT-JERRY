@@ -1,0 +1,20 @@
+Component,Quantity,Dimensions_mm,Evidence_or_limitation
+Acrylic deck,2,156 × 110 × 2.5,Inferred; native sketches
+Deck spacers,4,31.5 high,Inferred
+UNO standoffs,4,37.5 high,Inferred
+Rear board carrier,1,49 × 89 × 3,Inferred replacement for handmade support
+TT DC geared motor,4,19 × 17 × 53 visual envelope,Photo-derived; shaft not tolerance modeled
+Rubber wheel / yellow five-spoke rim,4,Ø60 × 24,Diameter from owner; width and tread inferred
+Two-cell holder,1,77 × 44 × 19,Owner reports central lower holder; 18650 form factor assumed
+Li-ion battery cell,2,Ø18.3 × 65.2; 3.7 V each,Voltage/count from owner; cell size assumed; series/parallel unspecified
+Arduino Uno envelope,1,68.6 × 53.4 PCB,Identified visually; mounting locations inferred
+ESP32 DevKit envelope,1,26 × 49 PCB,Identified visually; verify revision
+Breadboard,1,45 × 84 × 7,Photo-derived
+L298N motor driver,1,43 × 43 PCB,Project README and photographs
+Rear red breakout,1,18 × 32 PCB,Identity unreadable; visual placeholder
+HC-SR04 ultrasonic module,4,45 × 20 PCB; Ø16 transducers,Photo-derived front/rear; left/right requested additions
+ESP32-CAM / OV2640,1,27 × 40 PCB envelope,Project README and front photograph
+Jumper / ribbon harness,1 set,Photo-routed visual cables,Not an electrical schematic or routed wiring specification
+MPU-6050 breakout,1,21 × 16 × 1.6 PCB assumed,"Underside of middle deck; chip center (0,-20,49.55) mm"
+Three-axis magnetometer breakout,1,18 × 16 × 1.6 PCB assumed,"Generic unspecified device; chip center (-28,43,134.5) mm"
+Nylon compass mast and platform,1,Ø4 mast × 71.9; 22 × 20 platform,Nonmagnetic support; verify installed magnetic interference

@@ -15,6 +15,7 @@ Biometric rules:
 
 from __future__ import annotations
 
+import threading
 import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
@@ -61,6 +62,9 @@ class DetectedFace:
     confidence: float
     embedding: Optional[np.ndarray] = None
     observation_id: str = ""
+    # Original YuNet row: xywh, five xy landmarks, confidence. SFace needs
+    # these landmarks to align the face, not just its display rectangle.
+    detector_row: Optional[np.ndarray] = None
 
     @property
     def width(self) -> int:
@@ -140,7 +144,7 @@ class OpenCVFaceBackend:
         return det, rec
 
     def _load(self) -> None:
-        if self._detector is not None:
+        if self._detector is not None and self._recognizer is not None:
             return
         if self._failed:
             raise FaceRecognitionUnavailable(self._failed)
@@ -151,10 +155,11 @@ class OpenCVFaceBackend:
             raise FaceRecognitionUnavailable(self._failed) from exc
         try:
             det_path, rec_path = self._ensure_models()
-            self._detector = cv2.FaceDetectorYN.create(
+            detector = cv2.FaceDetectorYN.create(
                 str(det_path), "", (320, 320), score_threshold=0.6, nms_threshold=0.3, top_k=5000
             )
-            self._recognizer = cv2.FaceRecognizerSF.create(str(rec_path), "")
+            recognizer = cv2.FaceRecognizerSF.create(str(rec_path), "")
+            self._detector, self._recognizer = detector, recognizer
         except FaceRecognitionUnavailable:
             raise
         except Exception as exc:  # noqa: BLE001
@@ -174,36 +179,34 @@ class OpenCVFaceBackend:
         self._load()
         h, w = image_bgr.shape[:2]
         self._detector.setInputSize((w, h))
-        ok, faces = self._detector.detect(image_bgr)
+        _, faces = self._detector.detect(image_bgr)
         out: list[DetectedFace] = []
-        if not ok or faces is None:
+        if faces is None:
             return out
         for i, face in enumerate(faces):
-            x1, y1, x2, y2 = (int(max(0, v)) for v in face[:4])
+            x, y, width, height = (float(v) for v in face[:4])
+            x1, y1 = max(0, int(x)), max(0, int(y))
+            x2, y2 = min(w, int(x + width)), min(h, int(y + height))
             conf = float(face[-1])
             x2, y2 = min(x2, w), min(y2, h)
             if x2 - x1 < MIN_FACE_PX or y2 - y1 < MIN_FACE_PX:
                 continue
-            out.append(DetectedFace(bbox_xyxy=(x1, y1, x2, y2), confidence=conf))
+            out.append(DetectedFace(
+                bbox_xyxy=(x1, y1, x2, y2), confidence=conf,
+                detector_row=np.asarray(face, dtype=np.float32).copy(),
+            ))
         return out
 
     def embed(self, image_bgr: np.ndarray, face: DetectedFace) -> np.ndarray:
         import cv2
 
         self._load()
-        x1, y1, x2, y2 = face.bbox_xyxy
-        aligned = None
+        if face.detector_row is None or face.detector_row.size != 15:
+            raise FaceQualityInsufficient("SFace requires the detected face's five landmarks")
         try:
-            row = np.array([[*face.bbox_xyxy, face.confidence]], dtype=np.float32)
-            aligned = self._recognizer.alignCrop(image_bgr, row)
-        except Exception:  # noqa: BLE001 - fall back to plain crop
-            aligned = None
-        if aligned is None:
-            pad = 2
-            aligned = image_bgr[
-                max(0, y1 - pad) : min(image_bgr.shape[0], y2 + pad),
-                max(0, x1 - pad) : min(image_bgr.shape[1], x2 + pad),
-            ]
+            aligned = self._recognizer.alignCrop(image_bgr, face.detector_row)
+        except Exception as exc:
+            raise FaceQualityInsufficient(f"could not align detected face: {exc}") from exc
         feat = self._recognizer.feature(aligned)
         vec = np.asarray(feat, dtype=np.float32).reshape(-1)
         if vec.size != self.dimension:
@@ -243,7 +246,7 @@ class FaceRecognitionApiBackend:
         rgb = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB)
         locations = mod.face_locations(rgb, model="hog")
         return [
-            DetectedFace(bbox_xyxy=(int(top), int(right), int(bottom), int(left)), confidence=1.0)
+            DetectedFace(bbox_xyxy=(int(left), int(top), int(right), int(bottom)), confidence=1.0)
             for (top, right, bottom, left) in locations
         ]
 
@@ -306,6 +309,9 @@ class FaceMemoryService:
         self.require_confirmation = require_confirmation
         self._index: Optional[ExactNumpyIndex] = None
         self._index_model: str = ""
+        # Re-entrant: detection/matching/enrollment share the backend, the
+        # embedding index and the SQLite store with the GUI preview worker.
+        self._lock = threading.RLock()
 
     @property
     def backend(self) -> FaceBackend:
@@ -319,57 +325,65 @@ class FaceMemoryService:
         return self._backend.available()
 
     def _ensure_index(self) -> Optional[ExactNumpyIndex]:
-        try:
-            model_id = self.backend.name
-        except FaceRecognitionUnavailable:
-            return None
-        if self._index is not None and self._index_model == model_id:
-            return self._index
-        index = ExactNumpyIndex(model_id, FACE_DIMENSION, metric="l2")
-        for emb_id, entity_id, blob, dim, row_model, _q in self.store.all_face_embeddings():
-            if row_model != model_id or dim != FACE_DIMENSION:
-                continue
+        with self._lock:
             try:
-                vec = deserialize_vector(blob, dim)
-            except InvalidEmbedding as exc:
-                log.warning("skipping corrupt face embedding %s: %s", emb_id, exc)
-                continue
-            index.add(emb_id, vec, {"entity_id": entity_id})
-        self._index = index
-        self._index_model = model_id
-        return index
+                model_id = self.backend.name
+            except FaceRecognitionUnavailable:
+                return None
+            if self._index is not None and self._index_model == model_id:
+                return self._index
+            index = ExactNumpyIndex(model_id, FACE_DIMENSION, metric="l2")
+            for emb_id, entity_id, blob, dim, row_model, _q in self.store.all_face_embeddings():
+                if row_model != model_id or dim != FACE_DIMENSION:
+                    continue
+                try:
+                    vec = deserialize_vector(blob, dim)
+                except InvalidEmbedding as exc:
+                    log.warning("skipping corrupt face embedding %s: %s", emb_id, exc)
+                    continue
+                index.add(emb_id, vec, {"entity_id": entity_id})
+            self._index = index
+            self._index_model = model_id
+            return index
 
     def rebuild_index(self) -> int:
-        self._index = None
-        index = self._ensure_index()
-        return len(index) if index else 0
+        with self._lock:
+            self._index = None
+            index = self._ensure_index()
+            return len(index) if index else 0
 
     # -- detection / embedding -----------------------------------------
     def detect_faces(self, image_bgr: np.ndarray) -> list[FaceObservation]:
-        faces = self.backend.detect(image_bgr)
-        out = []
-        for face in faces:
-            obs_id = f"fobs_{abs(hash((face.bbox_xyxy, id(image_bgr)))) % (10**10)}"
-            out.append(
-                FaceObservation(
-                    observation_id=obs_id,
-                    frame_id="",
-                    bbox_xyxy=face.bbox_xyxy,
-                    detection_quality=face.confidence,
-                    source_model=self.backend.name,
-                    timestamp=utcnow(),
+        with self._lock:
+            faces = self.backend.detect(image_bgr)
+            out = []
+            for face in faces:
+                obs_id = f"fobs_{abs(hash((face.bbox_xyxy, id(image_bgr)))) % (10**10)}"
+                out.append(
+                    FaceObservation(
+                        observation_id=obs_id,
+                        frame_id="",
+                        bbox_xyxy=face.bbox_xyxy,
+                        detection_quality=face.confidence,
+                        source_model=self.backend.name,
+                        timestamp=utcnow(),
+                    )
                 )
-            )
-        return out
+            return out
 
     def extract_embeddings(self, image_bgr: np.ndarray) -> list[DetectedFace]:
-        faces = self.backend.detect(image_bgr)
-        for face in faces:
-            face.embedding = self.backend.embed(image_bgr, face)
-        return faces
+        with self._lock:
+            faces = self.backend.detect(image_bgr)
+            for face in faces:
+                face.embedding = self.backend.embed(image_bgr, face)
+            return faces
 
     # -- matching -------------------------------------------------------
     def match_face(self, embedding: np.ndarray) -> MatchResult:
+        with self._lock:
+            return self._match_face_locked(embedding)
+
+    def _match_face_locked(self, embedding: np.ndarray) -> MatchResult:
         index = self._ensure_index()
         model_id = self._index_model or getattr(self._backend, "name", "")
         if index is None or len(index) == 0:
@@ -377,7 +391,17 @@ class FaceMemoryService:
         vec = np.asarray(embedding, dtype=np.float32).reshape(-1)
         if vec.size != FACE_DIMENSION:
             raise InvalidEmbedding(f"expected {FACE_DIMENSION}-D face embedding, got {vec.size}")
-        hits = index.search(vec, k=2)
+        # Compare different people, not two enrollment samples of one person.
+        hits = []
+        seen_entities = set()
+        for hit in index.search(vec, k=len(index)):
+            entity_id = hit[2].get("entity_id")
+            if entity_id in seen_entities or not self.store.get_entity(entity_id):
+                continue
+            seen_entities.add(entity_id)
+            hits.append(hit)
+            if len(hits) == 2:
+                break
         if not hits:
             return MatchResult(status=MatchStatus.UNKNOWN, embedding_model_id=model_id)
         best_id, best_d, best_meta = hits[0]
@@ -436,6 +460,28 @@ class FaceMemoryService:
         request_id: str = "",
     ) -> tuple[Any, MatchResult, int]:
         """Enroll a consenting person; returns (entity, match, face_count)."""
+        with self._lock:
+            return self._enroll_identity_locked(
+                entity_name,
+                image_bgr,
+                transcript=transcript,
+                selected_face_id=selected_face_id,
+                consent_token=consent_token,
+                frame_id=frame_id,
+                request_id=request_id,
+            )
+
+    def _enroll_identity_locked(
+        self,
+        entity_name: str,
+        image_bgr: np.ndarray,
+        *,
+        transcript: str = "",
+        selected_face_id: Optional[str] = None,
+        consent_token: Optional[str] = None,
+        frame_id: str = "",
+        request_id: str = "",
+    ) -> tuple[Any, MatchResult, int]:
         faces = self.extract_embeddings(image_bgr)
         if not faces:
             raise FaceNotDetected("no face was detected in the snapshot")
@@ -517,12 +563,16 @@ class FaceMemoryService:
         return entity, match, len(faces)
 
     def remove_identity(self, entity_id: str) -> dict[str, int]:
+        with self._lock:
+            return self._remove_identity_locked(entity_id)
+
+    def _remove_identity_locked(self, entity_id: str) -> dict[str, int]:
         self.store.revoke_identity_bindings(entity_id)
+        embedding_ids = [row[0] for row in self.store.all_face_embeddings() if row[1] == entity_id]
         removed = self.store.delete_face_embeddings_for(entity_id)
         if self._index is not None:
-            for emb_id, ent, *_rest in self.store.all_face_embeddings():
-                if ent == entity_id:
-                    self._index.delete(emb_id)
+            for emb_id in embedding_ids:
+                self._index.delete(emb_id)
         counts = self.store.delete_entity(entity_id)
         counts["face_embeddings_removed"] = removed
         return counts

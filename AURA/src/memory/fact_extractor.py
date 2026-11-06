@@ -40,6 +40,7 @@ class ExtractedFact(BaseModel):
     value_type: str = "text"
     classification: StatementClass = StatementClass.EXPLICIT_ASSERTION
     supersedes_predicate: Optional[str] = None
+    previous_value: Optional[str] = None
     confidence: float = Field(default=0.9, ge=0.0, le=1.0)
 
     @field_validator("predicate", mode="before")
@@ -100,14 +101,14 @@ def classify_statement(transcript: str) -> StatementClass:
         return StatementClass.HYPOTHETICAL
     if _QUOTED_MARKERS.search(text):
         return StatementClass.QUOTED_SPEECH
-    if _CORRECTION_MARKERS.search(text):
-        return StatementClass.CORRECTION
     if _QUESTION_MARKERS.search(text):
         return StatementClass.QUESTION
     if _NEGATION_MARKERS.search(text) and not re.search(
         r"\b(no longer|used to be|from .+ to )\b", text, re.IGNORECASE
     ):
         return StatementClass.NEGATION
+    if _CORRECTION_MARKERS.search(text):
+        return StatementClass.CORRECTION
     return StatementClass.EXPLICIT_ASSERTION
 
 
@@ -117,15 +118,17 @@ def classify_statement(transcript: str) -> StatementClass:
 
 _NAME_PATTERNS = [
     re.compile(r"\bmy name is ([A-Z][\w'\-]*(?: [A-Z][\w'\-]*)*)", re.IGNORECASE),
-    re.compile(r"\bi am ([A-Z][\w'\-]*(?: [A-Z][\w'\-]*)*)\b(?![ ](?:not|called|named))", re.IGNORECASE),
-    re.compile(r"\bi'?m ([A-Z][\w'\-]*(?: [A-Z][\w'\-]*)*)\b(?![ ](?:not|called|named))", re.IGNORECASE),
+    # Bare "I am ..." also introduces feelings, jobs and activities. Only
+    # treat a short, capitalized name as deterministic identity evidence.
+    re.compile(r"(?i:\bi am )([A-Z][\w'\-]*(?: [A-Z][\w'\-]*){0,2})(?=$|[.,;!?]|\s+(?i:and|but)\b)"),
+    re.compile(r"(?i:\bi['’]?m )([A-Z][\w'\-]*(?: [A-Z][\w'\-]*){0,2})(?=$|[.,;!?]|\s+(?i:and|but)\b)"),
     re.compile(r"\bcall me ([A-Z][\w'\-]*(?: [A-Z][\w'\-]*)*)", re.IGNORECASE),
     re.compile(r"\bi go by ([A-Z][\w'\-]*(?: [A-Z][\w'\-]*)*)", re.IGNORECASE),
     # third-person: "the person's name is Ninja", "his name is Alex", "her name is Sam"
     re.compile(r"\b(?:the\s+)?(?:person'?s|guy'?s|man'?s|woman'?s|lady'?s|gentleman'?s|"
                r"his|her|their|someone'?s|whoever'?s)\s+name\s+is\s+"
                r"([A-Z][\w'\-]*(?: [A-Z][\w'\-]*)*)", re.IGNORECASE),
-    re.compile(r"\b(?:he|she|they)\s+(?:is|goes by|is called|is named)\s+"
+    re.compile(r"\b(?:he|she|they)\s+(?:goes by|is called|is named)\s+"
                r"([A-Z][\w'\-]*(?: [A-Z][\w'\-]*)*)", re.IGNORECASE),
 ]
 
@@ -168,7 +171,7 @@ _REMEMBER_PREFIX = re.compile(
 )
 
 _CORRECTION_NAME = re.compile(
-    r"\b(?:actually,?\s+)?(?:my name|i am|i'?m|call me)(?: is| was)?\s+"
+    r"\b(?:actually,?\s+)?(?:my name|call me)(?: is| was)?\s+"
     r"(?:now\s+)?([A-Z][\w'\-]*(?: [A-Z][\w'\-]*)*)",
     re.IGNORECASE,
 )
@@ -195,6 +198,13 @@ def _clean(value: str) -> str:
     return value
 
 
+def _clean_name(value: str) -> str:
+    # Stop before a second clause instead of naming the user "Alex and I ...".
+    value = re.split(r"\s+(?:and|but|because|who|please|remember)\b", value,
+                     maxsplit=1, flags=re.IGNORECASE)[0]
+    return _clean(value)
+
+
 def extract_deterministic(transcript: str) -> FactExtractionResult:
     text = (transcript or "").strip()
     result = FactExtractionResult(classification=classify_statement(text))
@@ -217,11 +227,14 @@ def extract_deterministic(transcript: str) -> FactExtractionResult:
                 obj = _clean(m.group(2))
             else:
                 obj = _clean(m.group(1))
+            target = re.search(r"\b(project|robot|device|controller|board)\b", m.group(0), re.IGNORECASE)
+            subject = "my_" + target.group(1).lower() if target else "unspecified"
             result.corrections.append(
                 ExtractedFact(
-                    subject="current_speaker",
-                    predicate="name",
+                    subject=subject,
+                    predicate="project_name" if subject == "my_project" else "name",
                     object_value=obj,
+                    previous_value=_clean(m.group(1)) if m.lastindex and m.lastindex >= 2 else None,
                     classification=StatementClass.CORRECTION,
                     confidence=0.9,
                 )
@@ -233,7 +246,7 @@ def extract_deterministic(transcript: str) -> FactExtractionResult:
                 ExtractedFact(
                     subject="current_speaker",
                     predicate="name",
-                    object_value=_clean(m.group(1)),
+                    object_value=_clean_name(m.group(1)),
                     classification=StatementClass.CORRECTION,
                     confidence=0.85,
                 )
@@ -243,10 +256,17 @@ def extract_deterministic(transcript: str) -> FactExtractionResult:
 
     facts: list[ExtractedFact] = []
 
+    # Common durable preferences also work without a cloud extractor.
+    for m in re.finditer(r"\bi\s+(like|love|prefer|enjoy)\s+([^.,;!?]+)", working, re.IGNORECASE):
+        value = re.split(r"\s+(?:but|because|and\s+i)\b", m.group(2), maxsplit=1,
+                         flags=re.IGNORECASE)[0].strip()
+        if value:
+            facts.append(ExtractedFact(predicate="likes", object_value=value))
+
     for pat in _NAME_PATTERNS:
         m = pat.search(working)
         if m:
-            value = _clean(m.group(1))
+            value = _clean_name(m.group(1))
             if value.lower() not in {"not", "called", "named"} and len(value) >= 2:
                 # Third-person possessives / pronouns refer to someone other
                 # than the speaker ("the person's name is X", "he is X").
@@ -291,7 +311,7 @@ def extract_deterministic(transcript: str) -> FactExtractionResult:
                 )
             break
 
-    if not facts:
+    if not any(f.predicate in {"name", "project_name"} for f in facts):
         for pat in _OWNERSHIP_PATTERNS:
             m = pat.search(working)
             if m:
@@ -388,6 +408,8 @@ def extract_facts(
     if result.classification not in {StatementClass.EXPLICIT_ASSERTION, StatementClass.CORRECTION}:
         return result
     try:
+        if getattr(client, "durable_extraction", False):
+            return client.extract_durable(transcript)
         raw, _meta = client.chat_json(build_llm_messages(transcript), temperature=0.0, max_tokens=400)
         llm_result = parse_llm_reply(raw)
     except Exception as exc:  # noqa: BLE001

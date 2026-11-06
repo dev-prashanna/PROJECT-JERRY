@@ -1,0 +1,188 @@
+{
+  "topics_received": {
+    "/ultrasonic/rear": 552,
+    "safe_commands": 8996,
+    "/ultrasonic/right": 552,
+    "/camera/image_raw": 896,
+    "/ultrasonic/front": 551,
+    "/ultrasonic/left": 551,
+    "map": 338,
+    "/perception/depth_relative": 755,
+    "yolo_frames": 410,
+    "object_boxes": 21
+  },
+  "states": {
+    "STOP": 430,
+    "LOOK_AROUND": 137,
+    "ALIGN": 253,
+    "EXPLORE": 2425,
+    "RECOVERING": 52,
+    "RELOCALIZE": 2,
+    "TRACKING_BRIDGE": 13,
+    "TURN": 267,
+    "PLANNING": 1
+  },
+  "motion_commands": {
+    "rotation": 3626,
+    "translation": 2412
+  },
+  "actual_path_length_m": 2.046091328784885,
+  "actual_exploration_extent_m": 1.79672429577537,
+  "autonomous_curiosity_path_length_m": 2.046091328784885,
+  "destinations": [
+    {
+      "goal_id": 1,
+      "goal": [
+        -1.7749999999999995,
+        0.125
+      ],
+      "completed_goals": 0,
+      "simulation_time_s": 22.017
+    }
+  ],
+  "destination_changes_without_arrival": [],
+  "max_normal_linear_acceleration_m_s2": 0.12,
+  "max_normal_yaw_acceleration_rad_s2": 0.6000000000000009,
+  "states_after_model_warmup": {
+    "STOP": 307,
+    "LOOK_AROUND": 137,
+    "ALIGN": 253,
+    "EXPLORE": 2425,
+    "RECOVERING": 52,
+    "RELOCALIZE": 2,
+    "TRACKING_BRIDGE": 13,
+    "TURN": 267,
+    "PLANNING": 1
+  },
+  "localization_recovery_entries": 10,
+  "visual_processing_p95_ms": 51.475877000484616,
+  "visual_processing_max_ms": 188.75233300059335,
+  "depth_source_age_p95_s": 0.48304397079918976,
+  "depth_inference_p95_ms": 25.429964065551758,
+  "stop_reasons_after_model_warmup": {
+    "Warming the YOLO detector; movement held until live perception is ready": 92,
+    "Depth prediction stale": 179,
+    "Camera stream stale or missing": 36
+  },
+  "longest_stationary_command_s": 4.543802005995531,
+  "observed_area_first_m2": 1.4625000435858968,
+  "observed_area_last_m2": 8.99000026792288,
+  "last_state": {
+    "active": true,
+    "simulation_time_s": 140.43,
+    "mode": "explore",
+    "attitude": {
+      "roll_deg": -0.022565414631498273,
+      "pitch_deg": -0.011072236359678559,
+      "yaw_deg": 116.34480953676756,
+      "heading_deg": 333.65519046323243,
+      "acceleration_m_s2": [
+        0.002463551651960368,
+        0.009938479093090221,
+        9.803941682501199
+      ],
+      "angular_velocity_deg_s": [
+        0.08358891126926436,
+        -0.04885575872144441,
+        1.0387690138632426
+      ],
+      "magnetic_field_uT": [
+        36.88895991605393,
+        -18.146277985487437,
+        12.689831586650541
+      ],
+      "ready": true,
+      "imu_age_s": 0.011159821995534003,
+      "mag_age_s": 0.05311911200260511
+    },
+    "mapping": {
+      "x_m": -1.6392609930613133,
+      "y_m": 0.2239379419295519,
+      "vo_inliers": 40,
+      "observed_m2": 8.990000000000002,
+      "loop_closures": 0
+    },
+    "state": "EXPLORE",
+    "reason": "Following the fixed destination with continuous steering",
+    "linear_m_s": 0.0032625419193161886,
+    "yaw_rad_s": 0.027160671719107993,
+    "depth_unit": "relative inverse depth, not metres",
+    "depth_age_wall_s": 0.28427776700118557,
+    "depth_age_sensor_s": 0.2300000000000068,
+    "inference_ms": 22.363901138305664,
+    "preprocess_ms": 8.296489715576172,
+    "postprocess_ms": 0.7638931274414062,
+    "scores": [
+      0.6867982149124146,
+      0.3392064571380615,
+      0.055898960679769516
+    ],
+    "near_coverage": [
+      0.10523743016759776,
+      0.0,
+      0.0
+    ],
+    "ultrasound_m": {
+      "front": 0.3655235767364502,
+      "left": 0.18890583515167236,
+      "rear": 0.7751933932304382,
+      "right": 0.7740935683250427
+    },
+    "ultrasound_age_s": {
+      "front": 0.2834231369997724,
+      "left": 0.1917501860007178,
+      "rear": 0.11828956499812193,
+      "right": 0.05490463600290241
+    },
+    "frame_id": 932,
+    "suggested_state": "EXPLORE",
+    "suggested_reason": "Following the fixed destination with continuous steering",
+    "suggested_linear_m_s": 0.0032625419193161886,
+    "suggested_yaw_rad_s": 0.027160671719107993,
+    "start_requested": true,
+    "arming": false,
+    "command_time_s": 56102.46598116,
+    "target_linear_m_s": 0.0032625419193161886,
+    "target_yaw_rad_s": 0.027160671719107993,
+    "objects": {
+      "status": "yolo11n ready on CUDA:0",
+      "age_s": 0.43250881000130903,
+      "frames": 410,
+      "count": 0
+    },
+    "slam": {
+      "pose": [
+        -1.6392609930613133,
+        0.2239379419295519,
+        2.0266081831740586
+      ],
+      "ready": true,
+      "status": "TRACKING \u00b7 flat-floor visual/compass SLAM",
+      "inliers": 40,
+      "good_streak": 90,
+      "trusted_pose_age_s": 0.2300000000000182,
+      "processing_ms": 30.205574999854434,
+      "keyframes": 59,
+      "loop_closures": 0,
+      "observed_m2": 8.990000000000002,
+      "free_m2": 7.7825000000000015,
+      "goal": [
+        -1.7749999999999995,
+        0.125
+      ],
+      "goal_id": 1,
+      "completed_goals": 0,
+      "goal_distance_m": 0.1677456076471513,
+      "route_revision": 2,
+      "planner_state": "EXPLORING",
+      "interest": "Travelling to destination #1; 0.17 m remaining",
+      "visited_places": 11,
+      "age_s": 0.2189343310019467,
+      "revision": 929,
+      "plan_ready": true,
+      "plan_age_s": 0.8295931880056742
+    }
+  },
+  "scene_poses_used_only_for_evaluation": true,
+  "errors": []
+}

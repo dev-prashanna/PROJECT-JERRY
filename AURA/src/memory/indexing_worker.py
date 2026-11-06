@@ -77,6 +77,12 @@ class MemoryIndexingWorker:
         try:
             if job.job_type == "embed_event":
                 self._embed_event(job.source_id)
+            elif job.job_type == "extract_facts":
+                event = store.get_event(job.source_id)
+                if event is not None:
+                    self.engine._remember_fact_payload({
+                        "transcript": event.content, "turn_id": event.turn_id, "use_llm": True,
+                    })
             elif job.job_type == "build_episode":
                 builder = getattr(self.engine, "episode_builder", None)
                 if builder is not None:

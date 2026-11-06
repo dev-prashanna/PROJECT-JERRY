@@ -266,6 +266,7 @@ def _isolated_settings(monkeypatch, tmp_path):
     monkeypatch.setenv("MEMORY_TURNS", "8")
     # MMS off by default so the existing suite never touches a real DB.
     monkeypatch.setenv("MEMORY_ENABLED", "0")
+    monkeypatch.setenv("GEMINI_API_KEY", "")
     monkeypatch.setenv("MEMORY_DB_PATH", str(tmp_path / "memory" / "aura_memory.db"))
     monkeypatch.setenv("MEMORY_ASSET_DIR", str(tmp_path / "memory" / "assets"))
     monkeypatch.setenv("MEMORY_BACKGROUND_INDEXING", "0")

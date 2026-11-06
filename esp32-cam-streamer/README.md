@@ -10,6 +10,32 @@ disabled are the defaults. JPEG quality adapts between 10 and 25 toward a
 Actual performance depends on sensor exposure, scene complexity and WiFi.
 Without PSRAM, the firmware uses QVGA and one internal-RAM frame buffer.
 
+## WiFi and stream recovery
+
+WiFi association starts without blocking startup for 30 seconds. The hostname
+is configured before starting WiFi, and HTTP servers start after a nonzero
+DHCP address is available. The serial monitor uses **115200 baud**.
+
+The previous firmware printed its IP only inside the initial connection
+attempt. A connection after that timeout, or a later reconnection, silently
+acquired an IP. The revised firmware prints the IP, RSSI and available endpoint
+URLs on connection and every 30 seconds, so a monitor opened late can still
+discover the address. Association, DHCP loss and disconnect reason codes are
+logged separately. Automatic WiFi reconnect remains enabled, with a fallback
+retry every 30 seconds while no IP is available.
+
+The old HTTP startup results were discarded: a failed server stayed down until
+reset. Servers now retry every five seconds and restart after an IP change or
+network interruption. A disconnect invalidates an active stream even when
+WiFi reconnects quickly, releasing its staging buffer and old connection.
+Sensor startup errors and malformed JPEG frames are reported, and FPS tuning
+windows reset when resolution or quality changes.
+
+These changes improve diagnostics and recovery; they do not establish a higher
+measured frame rate. The serial corruption observed before this revision also
+affected ROM boot output, which runs before this application. Its cause is
+still unconfirmed and cannot be attributed to the IP-reporting bug.
+
 ## Review and fixes
 
 - The Python reader now decodes HTTP transfer chunks before extracting JPEGs.
@@ -32,9 +58,9 @@ Without PSRAM, the firmware uses QVGA and one internal-RAM frame buffer.
 
 ## Flash from a local terminal
 
-The review session compiled the firmware, but could not flash it: Linux's sysfs
-and udev identify an FTDI FT232R on `ttyUSB0`, while `/dev/ttyUSB0` is absent in
-the session's device namespace. The upload failed before any flash write.
+The revised firmware has been compiled locally but has not been uploaded as
+part of this revision. The FTDI FT232R adapter is available on the host at
+`/dev/ttyUSB0`; access from a sandboxed session may require host permissions.
 
 For an FTDI connection without automatic boot control, connect GPIO0 to GND
 and reset the ESP32-CAM before uploading. After uploading, disconnect GPIO0
@@ -48,7 +74,8 @@ pio run -e esp32cam -t upload --upload-port /dev/ttyUSB0
 pio device monitor --port /dev/ttyUSB0 --baud 115200
 ```
 
-The boot log prints the camera initialization result, WiFi IP and RSSI.
+The boot log prints its build date, reset reason and camera initialization
+result. WiFi IP, RSSI and endpoint URLs are also printed every 30 seconds.
 The built application is `.pio/build/esp32cam/firmware.bin`; use PlatformIO's
 upload target so the bootloader and partition table are also placed correctly.
 
@@ -89,3 +116,6 @@ The four regression tests use actual HTTP response bytes with an in-memory
 socket substitute: split-chunk JPEG decoding, rejected-connection cleanup,
 retry after a failed reconnect, and waking waiters on shutdown. Camera capture,
 WiFi throughput and boot behavior require verification on the physical board.
+After flashing, also verify that the IP appears when the monitor is opened
+late, and that `/status` and a new stream work after disconnecting and restoring
+the access point. Existing streams must reconnect after a network interruption.

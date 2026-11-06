@@ -1,0 +1,46 @@
+{
+  "pose": [
+    -0.08158756987015447,
+    0.010018442500688216,
+    -1.4546601339302903
+  ],
+  "tracking": false,
+  "status": "TRACKING LOST \u00b7 waiting for a recognized keyframe",
+  "inliers": 66,
+  "keyframes": 3,
+  "loop_closures": 0,
+  "observed_m2": 1.9300000000000004,
+  "free_m2": 1.5625000000000002,
+  "frontiers": [],
+  "path": [],
+  "goal": null,
+  "planner_state": "NO_REACHABLE_FRONTIER",
+  "interest": "No reachable new place yet; looking around",
+  "visited_places": 4,
+  "origin": [
+    -6.0,
+    -6.0
+  ],
+  "resolution": 0.05,
+  "trajectory": [
+    [
+      0.0,
+      0.0,
+      0.712729872659323
+    ],
+    [
+      -0.015352223176123642,
+      0.00022219992826409685,
+      0.39026864181241283
+    ],
+    [
+      -0.009937446823888169,
+      0.014749819778847942,
+      0.10149516466216202
+    ]
+  ],
+  "stamp": 517.1,
+  "age_s": 0.009666690002632095,
+  "ready": false,
+  "error": null
+}

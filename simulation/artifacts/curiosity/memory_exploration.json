@@ -1,0 +1,129 @@
+{
+  "topics_received": {
+    "safe_commands": 5383,
+    "/ultrasonic/front": 430,
+    "/camera/image_raw": 974,
+    "/ultrasonic/left": 430,
+    "/ultrasonic/rear": 429,
+    "/ultrasonic/right": 429,
+    "map": 193,
+    "/perception/depth_relative": 801
+  },
+  "states": {
+    "ARMING": 1,
+    "STOP": 267,
+    "LOOK_AROUND": 99,
+    "ALIGN": 51,
+    "EXPLORE": 164,
+    "RELOCALIZE": 1451
+  },
+  "motion_commands": {
+    "rotation": 785,
+    "translation": 407
+  },
+  "actual_path_length_m": 0.43713090527730414,
+  "actual_exploration_extent_m": 0.38737861135806967,
+  "autonomous_curiosity_path_length_m": 0.43713090527730414,
+  "observed_area_first_m2": 1.3600000405311587,
+  "observed_area_last_m2": 7.405000220686199,
+  "last_state": {
+    "active": true,
+    "simulation_time_s": 103.083,
+    "mode": "explore",
+    "attitude": {
+      "roll_deg": 0.001394892457730947,
+      "pitch_deg": -0.004145074937051976,
+      "yaw_deg": 92.15366469362885,
+      "heading_deg": 357.84633530637115,
+      "acceleration_m_s2": [
+        -0.008420884977114802,
+        0.007109406009685937,
+        9.809466470656412
+      ],
+      "angular_velocity_deg_s": [
+        -0.04494469495547184,
+        0.07467321274982243,
+        -0.08840146917321655
+      ],
+      "magnetic_field_uT": [
+        41.230000880952026,
+        -1.614492704020418,
+        12.496471410560494
+      ],
+      "ready": true,
+      "imu_age_s": 0.0028093720029573888,
+      "mag_age_s": 0.03267320099985227
+    },
+    "mapping": {
+      "x_m": 0.020920557705233257,
+      "y_m": 0.343182900342806,
+      "vo_inliers": 0,
+      "observed_m2": 7.405000000000001,
+      "loop_closures": 0
+    },
+    "state": "RELOCALIZE",
+    "reason": "Checking the remembered view; translation held until tracking recovers",
+    "linear_m_s": 0.0,
+    "yaw_rad_s": 0.0,
+    "depth_unit": "relative inverse depth, not metres",
+    "depth_age_wall_s": 0.17350517700106138,
+    "depth_age_sensor_s": 0.1829999999999984,
+    "inference_ms": 73.90451431274414,
+    "scores": [
+      0.28265640139579773,
+      0.04656776413321495,
+      0.0445372611284256
+    ],
+    "near_coverage": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "ultrasound_m": {
+      "left": 0.508762538433075,
+      "rear": 0.8218714594841003,
+      "right": 1.3834458589553833,
+      "front": 1.0209547281265259
+    },
+    "ultrasound_age_s": {
+      "left": 0.003369534002558794,
+      "rear": 0.18436470899905544,
+      "right": 0.12172124900098424,
+      "front": 0.0632076900001266
+    },
+    "frame_id": 963,
+    "suggested_state": "RELOCALIZE",
+    "suggested_reason": "Checking the remembered view; translation held until tracking recovers",
+    "suggested_linear_m_s": 0.0,
+    "suggested_yaw_rad_s": 0.0,
+    "start_requested": true,
+    "arming": false,
+    "slam": {
+      "pose": [
+        0.020920557705233257,
+        0.343182900342806,
+        1.6083439694254649
+      ],
+      "ready": false,
+      "status": "TRACKING LOST \u00b7 waiting for a recognized keyframe",
+      "inliers": 0,
+      "keyframes": 15,
+      "loop_closures": 0,
+      "observed_m2": 7.405000000000001,
+      "free_m2": 6.7650000000000015,
+      "goal": [
+        1.0750000000000002,
+        1.0750000000000002
+      ],
+      "planner_state": "EXPLORING",
+      "interest": "Investigating a place likely to reveal unfamiliar space",
+      "visited_places": 5,
+      "age_s": 0.007437849999405444,
+      "revision": 961,
+      "plan_ready": false,
+      "plan_age_s": 70.20044790899556
+    }
+  },
+  "scene_poses_used_only_for_evaluation": true,
+  "errors": []
+}

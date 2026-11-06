@@ -15,5 +15,8 @@ scipy>=1.11                  # robust calibration fitting (1.18.1 verified)
 PyYAML==6.0.1                # config.yaml parsing
 safetensors                  # weight loading (pulled in by transformers)
 pillow                       # image file input
+PySide6>=6.6                 # integrated Gazebo robot dashboard
+ultralytics==8.3.228         # local pretrained YOLO11n object detection
+matplotlib>=3.10             # NumPy 2 compatible plotting dependency for Ultralytics
 # test-only
 pytest>=7.4

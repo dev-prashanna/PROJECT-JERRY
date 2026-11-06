@@ -1,0 +1,21 @@
+{
+  "image_encoding": "rgb8",
+  "image_frame": "camera_optical_frame",
+  "camera_info_frame": "camera_optical_frame",
+  "camera_intrinsics": [
+    461.0356903076172,
+    0.0,
+    320.0,
+    0.0,
+    461.035737991333,
+    240.0,
+    0.0,
+    0.0,
+    1.0
+  ],
+  "image_size": [
+    640,
+    480
+  ],
+  "pixel_std": 38.664442276053386
+}

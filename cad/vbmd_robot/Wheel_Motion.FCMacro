@@ -1,0 +1,50 @@
+"""FreeCAD macro: visual differential-drive controls. Does not send hardware commands."""
+import FreeCAD as App, FreeCADGui as Gui
+from PySide import QtCore, QtWidgets
+import math
+
+def open_vbmd_motion():
+    doc=next((d for d in App.listDocuments().values() if d.getObject('Wheel_Front_Left')),None)
+    if not doc:
+        QtWidgets.QMessageBox.information(None,'VBMD','Open VBMD_Robot.FCStd first.'); return
+    old=getattr(Gui,'vbmd_motion_dialog',None)
+    if old: old.close()
+    dlg=QtWidgets.QDialog(Gui.getMainWindow()); dlg.setWindowTitle('VBMD · Wheel motion')
+    layout=QtWidgets.QVBoxLayout(dlg)
+    note=QtWidgets.QLabel('Visual kinematics · +X forward · two drive channels\nLeft controls both left wheels; right controls both right wheels.'); layout.addWidget(note)
+    grid=QtWidgets.QGridLayout(); layout.addLayout(grid)
+    inputs=[]
+    for row,side in enumerate(['Left','Right']):
+        grid.addWidget(QtWidgets.QLabel(side+' wheel speed (rpm)'),row,0)
+        s=QtWidgets.QDoubleSpinBox(); s.setRange(-120,120); s.setSingleStep(5); s.setValue(25); grid.addWidget(s,row,1); inputs.append(s)
+    stat=QtWidgets.QLabel(); layout.addWidget(stat)
+    buttons=QtWidgets.QHBoxLayout(); layout.addLayout(buttons)
+    timer=QtCore.QTimer(dlg); timer.setInterval(40)
+    def tick():
+        if doc.Name not in App.listDocuments(): timer.stop(); return
+        for side,rpm in zip(['Left','Right'],inputs):
+            for front in ['Front','Rear']:
+                w=doc.getObject('Wheel_'+front+'_'+side)
+                w.Spin=(w.Spin.Value+rpm.value()*6*.04)%360
+                w.Placement.Rotation=App.Rotation(App.Vector(0,1,0),w.Spin.Value)
+        doc.recompute()
+        # Speeds are calculated from the measured 60 mm nominal wheel diameter.
+        try: diameter=float(doc.Dimensions.get('wheel_diameter'))
+        except Exception: diameter=60.
+        try: track=float(doc.Dimensions.get('overall_width'))-float(doc.Dimensions.get('wheel_width'))
+        except Exception: track=136.
+        vl=inputs[0].value()*math.pi*diameter/60.; vr=inputs[1].value()*math.pi*diameter/60.
+        stat.setText('Ideal speed: %.1f mm/s   |   yaw: %.1f deg/s'%((vl+vr)/2,(vr-vl)/track*180/math.pi))
+    def preset(l,r): inputs[0].setValue(l); inputs[1].setValue(r); timer.start()
+    for name,fn in [('Forward',lambda:preset(25,25)),('Reverse',lambda:preset(-25,-25)),('Turn left',lambda:preset(-20,20)),('Stop',timer.stop)]:
+        b=QtWidgets.QPushButton(name); b.clicked.connect(fn); buttons.addWidget(b)
+    def reset():
+        timer.stop()
+        for side in ['Left','Right']:
+            for front in ['Front','Rear']:
+                w=doc.getObject('Wheel_'+front+'_'+side); w.Spin=0; w.Placement.Rotation=App.Rotation()
+        doc.recompute(); stat.setText('Wheel angles reset.')
+    b=QtWidgets.QPushButton('Reset wheel angles'); b.clicked.connect(reset); layout.addWidget(b)
+    timer.timeout.connect(tick); dlg.finished.connect(lambda _:timer.stop())
+    dlg.resize(490,210); Gui.vbmd_motion_dialog=dlg; dlg.show()
+open_vbmd_motion()

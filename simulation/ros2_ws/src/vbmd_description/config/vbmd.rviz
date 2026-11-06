@@ -1,0 +1,55 @@
+Panels:
+  - Class: rviz_common/Displays
+    Name: Displays
+Visualization Manager:
+  Global Options:
+    Background Color: 32; 38; 45
+    Fixed Frame: base_footprint
+    Frame Rate: 30
+  Displays:
+    - Class: rviz_default_plugins/Grid
+      Name: Grid
+      Cell Size: 0.1
+      Plane Cell Count: 20
+    - Class: rviz_default_plugins/RobotModel
+      Name: VBMD Robot
+      Description Source: Topic
+      Description Topic:
+        Value: /robot_description
+        Durability Policy: Transient Local
+      Visual Enabled: true
+      Collision Enabled: false
+    - Class: rviz_default_plugins/TF
+      Name: TF
+      Show Names: false
+    - Class: rviz_default_plugins/Image
+      Name: ESP32 Camera
+      Topic:
+        Value: /camera/image_raw
+        Reliability Policy: Best Effort
+    - Class: rviz_default_plugins/Range
+      Name: Front Ultrasound
+      Topic:
+        Value: /ultrasonic/front
+    - Class: rviz_default_plugins/Range
+      Name: Rear Ultrasound
+      Topic:
+        Value: /ultrasonic/rear
+    - Class: rviz_default_plugins/Range
+      Name: Left Ultrasound
+      Topic:
+        Value: /ultrasonic/left
+    - Class: rviz_default_plugins/Range
+      Name: Right Ultrasound
+      Topic:
+        Value: /ultrasonic/right
+  Views:
+    Current:
+      Class: rviz_default_plugins/Orbit
+      Distance: 0.55
+      Pitch: 0.4
+      Yaw: 2.4
+      Focal Point:
+        X: 0
+        Y: 0
+        Z: 0.06

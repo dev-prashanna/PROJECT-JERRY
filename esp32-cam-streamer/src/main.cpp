@@ -5,6 +5,8 @@
 #include <lwip/sockets.h>
 #include <lwip/tcp.h>
 #include <errno.h>
+#include <atomic>
+#include <esp_system.h>
 #include "esp_camera.h"
 #include "secrets.h"
 
@@ -37,6 +39,11 @@ const char* mdns_hostname = "esp32cam";
 static const char* TAG = "stream";
 static bool cameraOk = false;
 static int fbCount = 2;
+static httpd_handle_t captureServer = NULL;
+static httpd_handle_t streamServer = NULL;
+// A disconnect invalidates an active stream, even if WiFi reconnects before
+// the HTTP task gets scheduled again.
+static std::atomic<uint32_t> networkGeneration{0};
 
 // Sensor mutations come from two httpd tasks (/stream on 81, /capture on 80)
 static SemaphoreHandle_t sensorMutex = NULL;
@@ -159,11 +166,19 @@ bool initCamera() {
   sensor_t* s = esp_camera_sensor_get();
   if (s != NULL) {
     sensorLock();
-    if (hasPsram) s->set_framesize(s, FRAMESIZE_HD);
-    s->set_quality(s, autoQuality);
+    int result = hasPsram ? s->set_framesize(s, FRAMESIZE_HD) : 0;
+    if (result == 0) result = s->set_quality(s, autoQuality);
     s->set_brightness(s, 0);
     s->set_saturation(s, 0);
     sensorUnlock();
+    if (result != 0) {
+      Serial.println("[cam] sensor rejected startup settings");
+      esp_camera_deinit();
+      return false;
+    }
+  } else {
+    esp_camera_deinit();
+    return false;
   }
 
   pinMode(LED_GPIO_NUM, OUTPUT);
@@ -250,6 +265,12 @@ static esp_err_t applyCaptureParams(httpd_req_t* req) {
     qualityManual = false;
     applyQualityLocked(constrain(autoQuality, AUTO_Q_MIN, AUTO_Q_MAX));
   }
+  if (fs != FRAMESIZE_INVALID || q >= 0 || automatic) {
+    // A window spanning two resolutions/qualities cannot tune either one.
+    streamFpsCount = 0;
+    streamFpsStart = millis();
+    streamFps = 0;
+  }
   recoverStreak = 0;
   sensorUnlock();
   return result == 0 ? ESP_OK : badParams(req, "Sensor rejected settings");
@@ -277,13 +298,23 @@ static esp_err_t stream_handler(httpd_req_t* req) {
   char part_hdr[64];
   uint8_t* out = NULL;
   size_t cap = 0;
+  const uint32_t generation = networkGeneration.load();
 
-  while (true) {
+  while (WiFi.status() == WL_CONNECTED &&
+         networkGeneration.load() == generation) {
     sensorLock();
     camera_fb_t* fb = esp_camera_fb_get();
     if (!fb) {
       sensorUnlock();
       ESP_LOGE(TAG, "Frame capture failed");
+      res = ESP_FAIL;
+      break;
+    }
+    if (fb->format != PIXFORMAT_JPEG || fb->len < 4 ||
+        fb->buf[0] != 0xff || fb->buf[1] != 0xd8) {
+      esp_camera_fb_return(fb);
+      sensorUnlock();
+      Serial.println("[stream] invalid JPEG frame; closing connection");
       res = ESP_FAIL;
       break;
     }
@@ -300,6 +331,8 @@ static esp_err_t stream_handler(httpd_req_t* req) {
         esp_camera_fb_return(fb);
         sensorUnlock();
         res = ESP_ERR_NO_MEM;
+        Serial.printf("[stream] cannot allocate %u-byte frame staging buffer\n",
+                      (unsigned)nextCap);
         break;
       }
       out = grown;
@@ -319,8 +352,13 @@ static esp_err_t stream_handler(httpd_req_t* req) {
     res = httpd_resp_send_chunk(req, (const char*)out, off);
     if (res != ESP_OK) break;
     noteStreamFrame();
+    // Give other tasks a turn even with small frames on a fast LAN.
+    delay(1);
   }
 
+  // This is an endless multipart response. Returning ESP_OK after a WiFi
+  // loss would leave an incomplete response attached to a reusable socket.
+  if (res == ESP_OK) res = ESP_FAIL;
   free(out);
   sensorLock();
   streamFps = 0;
@@ -423,8 +461,9 @@ static httpd_handle_t startCaptureServer() {
   config.send_wait_timeout = 3;
 
   httpd_handle_t handle = NULL;
-  if (httpd_start(&handle, &config) != ESP_OK) {
-    ESP_LOGE(TAG, "capture server start failed");
+  esp_err_t err = httpd_start(&handle, &config);
+  if (err != ESP_OK) {
+    Serial.printf("[http] capture/status server start failed: 0x%x\n", err);
     return NULL;
   }
 
@@ -434,10 +473,14 @@ static httpd_handle_t startCaptureServer() {
   const httpd_uri_t status_uri = {
     .uri = "/status", .method = HTTP_GET, .handler = status_handler, .user_ctx = NULL
   };
-  httpd_register_uri_handler(handle, &capture_uri);
-  httpd_register_uri_handler(handle, &status_uri);
+  if (httpd_register_uri_handler(handle, &capture_uri) != ESP_OK ||
+      httpd_register_uri_handler(handle, &status_uri) != ESP_OK) {
+    Serial.println("[http] capture/status route registration failed");
+    httpd_stop(handle);
+    return NULL;
+  }
 
-  ESP_LOGI(TAG, "capture/status server on port 80");
+  Serial.println("[http] capture/status server on port 80");
   return handle;
 }
 
@@ -453,17 +496,22 @@ static httpd_handle_t startStreamServer() {
   config.send_wait_timeout = 3;
 
   httpd_handle_t handle = NULL;
-  if (httpd_start(&handle, &config) != ESP_OK) {
-    ESP_LOGE(TAG, "stream server start failed");
+  esp_err_t err = httpd_start(&handle, &config);
+  if (err != ESP_OK) {
+    Serial.printf("[http] stream server start failed: 0x%x\n", err);
     return NULL;
   }
 
   const httpd_uri_t stream_uri = {
     .uri = "/stream", .method = HTTP_GET, .handler = stream_handler, .user_ctx = NULL
   };
-  httpd_register_uri_handler(handle, &stream_uri);
+  if (httpd_register_uri_handler(handle, &stream_uri) != ESP_OK) {
+    Serial.println("[http] stream route registration failed");
+    httpd_stop(handle);
+    return NULL;
+  }
 
-  ESP_LOGI(TAG, "stream server on port 81");
+  Serial.println("[http] stream server on port 81");
   return handle;
 }
 
@@ -473,14 +521,71 @@ static httpd_handle_t startStreamServer() {
 static bool mdnsUp = false;
 static uint32_t lastWifiRetryMs = 0;
 static uint32_t lastMdnsRetryMs = 0;
-static const uint32_t WIFI_RETRY_MS = 15000;
+static uint32_t lastServerRetryMs = 0;
+static uint32_t lastIpReportMs = 0;
+static uint32_t reportedIp = 0;
+static bool serversNeedRestart = false;
+static bool setupReady = false;
+static const uint32_t WIFI_RETRY_MS = 30000;
 static const uint32_t MDNS_RETRY_MS = 10000;
+static const uint32_t SERVER_RETRY_MS = 5000;
+static const uint32_t IP_REPORT_MS = 30000;
+
+struct NetworkEvent {
+  arduino_event_id_t type;
+  uint8_t reason;
+};
+static QueueHandle_t networkEvents = NULL;
+
+// Arduino invokes this on another task. Keep HTTP/mDNS work and serial
+// reporting in loop(); never stop an HTTP server from the WiFi callback.
+static void onWifiEvent(arduino_event_id_t event, arduino_event_info_t info) {
+  if (event != ARDUINO_EVENT_WIFI_STA_CONNECTED &&
+      event != ARDUINO_EVENT_WIFI_STA_GOT_IP &&
+      event != ARDUINO_EVENT_WIFI_STA_DISCONNECTED &&
+      event != ARDUINO_EVENT_WIFI_STA_LOST_IP) return;
+  if (event == ARDUINO_EVENT_WIFI_STA_DISCONNECTED ||
+      event == ARDUINO_EVENT_WIFI_STA_LOST_IP) {
+    networkGeneration.fetch_add(1);
+  }
+  NetworkEvent message = {event, 0};
+  if (event == ARDUINO_EVENT_WIFI_STA_DISCONNECTED)
+    message.reason = info.wifi_sta_disconnected.reason;
+  xQueueSend(networkEvents, &message, 0);
+}
+
+static void stopNetworkServices() {
+  if (mdnsUp) {
+    MDNS.end();
+    mdnsUp = false;
+  }
+  if (streamServer) {
+    httpd_stop(streamServer);
+    streamServer = NULL;
+  }
+  if (captureServer) {
+    httpd_stop(captureServer);
+    captureServer = NULL;
+  }
+}
+
+static void reportAddress() {
+  String ip = WiFi.localIP().toString();
+  Serial.printf("[wifi] IP: %s  RSSI: %d dBm\n", ip.c_str(), (int)WiFi.RSSI());
+  if (streamServer)
+    Serial.printf("[stream] http://%s:81/stream\n", ip.c_str());
+  if (captureServer)
+    Serial.printf("[status] http://%s/status\n", ip.c_str());
+  lastIpReportMs = millis();
+}
 
 static void startMdns() {
-  if (mdnsUp || WiFi.status() != WL_CONNECTED) return;
+  if (mdnsUp || !captureServer || WiFi.status() != WL_CONNECTED) return;
+  lastMdnsRetryMs = millis();
   if (MDNS.begin(mdns_hostname)) {
     MDNS.addService("http", "tcp", 80);
-    Serial.printf("[mdns] http://%s.local/ (stream on :81)\n", mdns_hostname);
+    if (streamServer) MDNS.addService("mjpeg", "tcp", 81);
+    Serial.printf("[mdns] %s.local (status on :80, stream on :81)\n", mdns_hostname);
     mdnsUp = true;
   } else {
     lastMdnsRetryMs = millis();
@@ -488,31 +593,85 @@ static void startMdns() {
   }
 }
 
-// Try to join WiFi for `timeoutMs`; never reboots — the caller keeps
-// running (camera stays up) and retries from loop().
-static void wifiConnectBlocking(uint32_t timeoutMs) {
+// Begin association without a 30-second startup stall. GOT_IP and later
+// reconnects are handled identically by serviceNetwork().
+static void startWifi() {
+  WiFi.persistent(false);
+  WiFi.setHostname(mdns_hostname);
+  WiFi.onEvent(onWifiEvent);
   WiFi.mode(WIFI_STA);
   WiFi.setSleep(false);
-  WiFi.setHostname(mdns_hostname);
   WiFi.setAutoReconnect(true);
+  Serial.printf("[wifi] connecting to \"%s\" (2.4 GHz station mode)\n", WIFI_SSID);
+  lastWifiRetryMs = millis();
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
-  Serial.printf("[wifi] connecting to \"%s\"", WIFI_SSID);
+}
 
-  uint32_t start = millis();
-  while (WiFi.status() != WL_CONNECTED && millis() - start < timeoutMs) {
-    delay(500);
-    Serial.print(".");
+static void serviceNetwork() {
+  static uint32_t servicedGeneration = 0;
+  NetworkEvent event;
+  while (xQueueReceive(networkEvents, &event, 0) == pdTRUE) {
+    switch (event.type) {
+      case ARDUINO_EVENT_WIFI_STA_CONNECTED:
+        Serial.println("[wifi] associated with access point; waiting for DHCP IP");
+        break;
+      case ARDUINO_EVENT_WIFI_STA_GOT_IP:
+        // Report even if the router reassigns the same address.
+        reportedIp = 0;
+        serversNeedRestart = true;
+        break;
+      case ARDUINO_EVENT_WIFI_STA_DISCONNECTED:
+        Serial.printf("[wifi] disconnected: reason %u (%s)\n", event.reason,
+                      WiFi.disconnectReasonName((wifi_err_reason_t)event.reason));
+        break;
+      case ARDUINO_EVENT_WIFI_STA_LOST_IP:
+        Serial.println("[wifi] DHCP IP lost");
+        break;
+      default:
+        break;
+    }
   }
-  Serial.println();
 
-  if (WiFi.status() == WL_CONNECTED) {
-    Serial.printf("[wifi] connected, IP: %s  RSSI: %d dBm\n",
-                  WiFi.localIP().toString().c_str(), (int)WiFi.RSSI());
-    startMdns();
-  } else {
-    lastWifiRetryMs = millis();
-    Serial.println("[wifi] not connected — continuing without network, retrying every 15s");
+  // This also catches a brief disconnect if the diagnostic queue was full.
+  uint32_t generation = networkGeneration.load();
+  if (generation != servicedGeneration) {
+    servicedGeneration = generation;
+    serversNeedRestart = true;
   }
+  uint32_t now = millis();
+  uint32_t ip = (uint32_t)WiFi.localIP();
+  bool connected = WiFi.status() == WL_CONNECTED && ip != 0;
+  if (!connected || serversNeedRestart || (reportedIp && reportedIp != ip)) {
+    stopNetworkServices();
+    serversNeedRestart = false;
+    reportedIp = 0;
+    lastServerRetryMs = now - SERVER_RETRY_MS;
+    lastMdnsRetryMs = now - MDNS_RETRY_MS;
+  }
+  if (!connected) {
+    if (now - lastWifiRetryMs >= WIFI_RETRY_MS) {
+      lastWifiRetryMs = now;
+      Serial.printf("[wifi] no IP after 30s (status=%d); retrying\n", (int)WiFi.status());
+      if (!WiFi.reconnect()) Serial.println("[wifi] reconnect request failed");
+    }
+    return;
+  }
+
+  lastWifiRetryMs = now;
+  bool servicesChanged = false;
+  if ((!captureServer || !streamServer) && now - lastServerRetryMs >= SERVER_RETRY_MS) {
+    lastServerRetryMs = now;
+    if (!captureServer) { captureServer = startCaptureServer(); servicesChanged = true; }
+    if (!streamServer) { streamServer = startStreamServer(); servicesChanged = true; }
+    // Refresh advertised services if a previously failed server recovers.
+    if (mdnsUp) { MDNS.end(); mdnsUp = false; }
+    lastMdnsRetryMs = now - MDNS_RETRY_MS;
+  }
+  if (reportedIp != ip || servicesChanged || now - lastIpReportMs >= IP_REPORT_MS) {
+    reportedIp = ip;
+    reportAddress();
+  }
+  if (!mdnsUp && now - lastMdnsRetryMs >= MDNS_RETRY_MS) startMdns();
 }
 
 // =====================================================
@@ -522,51 +681,40 @@ void setup() {
   Serial.begin(115200);
   delay(200);
   Serial.println();
-  Serial.println("[boot] ESP32-CAM streamer");
+  Serial.printf("[boot] ESP32-CAM streamer built %s %s; serial=115200; reset_reason=%d\n",
+                __DATE__, __TIME__, (int)esp_reset_reason());
 
   sensorMutex = xSemaphoreCreateMutex();
   if (!sensorMutex) {
     Serial.println("[fatal] cannot allocate camera mutex");
     return;
   }
+  networkEvents = xQueueCreate(8, sizeof(NetworkEvent));
+  if (!networkEvents) {
+    Serial.println("[fatal] cannot allocate WiFi event queue");
+    return;
+  }
+
+  // Start WiFi before camera initialization, so a camera failure does not
+  // prevent association. Network services are started only after GOT_IP.
+  startWifi();
 
   cameraOk = initCamera();
+  Serial.printf("[cam] PSRAM=%s; frame buffers=%d\n", psramFound() ? "yes" : "no", fbCount);
   if (cameraOk) {
     Serial.println("[ok] camera ready");
   } else {
     Serial.println("[warn] camera init failed — network will still come up; /status reports camera:false");
   }
 
-  wifiConnectBlocking(30000);
-
-  startCaptureServer();
-  startStreamServer();
-
-  digitalWrite(LED_GPIO_NUM, LOW);  // flash LED stays off
+  setupReady = true;
+  serviceNetwork();
 }
 
 // =====================================================
 // Loop — background WiFi/mDNS recovery only
 // =====================================================
 void loop() {
-  if (WiFi.status() != WL_CONNECTED) {
-    if (mdnsUp) {
-      MDNS.end();
-      mdnsUp = false;
-    }
-    uint32_t now = millis();
-    if (now - lastWifiRetryMs >= WIFI_RETRY_MS) {
-      lastWifiRetryMs = now;
-      Serial.println("[wifi] disconnected, retrying...");
-      WiFi.reconnect();
-    }
-  } else {
-    if (!mdnsUp && millis() - lastMdnsRetryMs >= MDNS_RETRY_MS) {
-      lastMdnsRetryMs = millis();
-      startMdns();
-    }
-    delay(10);
-    return;
-  }
+  if (setupReady) serviceNetwork();
   delay(10);
 }

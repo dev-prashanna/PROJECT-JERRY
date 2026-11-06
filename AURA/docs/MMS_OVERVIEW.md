@@ -39,8 +39,9 @@ object that was linked to it.
 * **Faces** — self-enrolment utterances only ("remember my face as Alex").
   Third-party enrolment ("this is Alice") is refused; multi-face frames require
   an explicit selection + confirmation token. Tokens are short-lived records in
-  `enrollment_consent`. Face recognition ships **disabled**
-  (`MEMORY_FACE_RECOGNITION_ENABLED=0`).
+  `enrollment_consent`. Face recognition ships **disabled** by default
+  (`FACE_RECOGNITION_ENABLED=0`); set `FACE_RECOGNITION_ENABLED=true` in
+  `.env` to turn it on.
 * **Objects** — the object's owner is the consenting current speaker; raw
   frames are never persisted, only content-cropped ROIs.
 

@@ -1,0 +1,27 @@
+{
+  "topics_received": [
+    "/joint_states",
+    "/ultrasonic/left",
+    "/camera/camera_info",
+    "/ultrasonic/rear",
+    "/tf_static",
+    "/ultrasonic/right",
+    "/camera/image_raw",
+    "/ultrasonic/front"
+  ],
+  "rgb_size": [
+    640,
+    480
+  ],
+  "joint_count": 4,
+  "fixed_tf_count": 11,
+  "no_fake_odometry_or_lidar": true,
+  "ground_truth_disabled": true,
+  "ultrasonic_ranges_m": {
+    "front": 0.5344184041023254,
+    "rear": 1.9963217973709106,
+    "left": 1.3965940475463867,
+    "right": 0.4701462686061859
+  },
+  "engine": "gazebo"
+}

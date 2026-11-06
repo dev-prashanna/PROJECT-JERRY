@@ -1,0 +1,151 @@
+{
+  "topics_received": {
+    "safe_commands": 7881,
+    "/ultrasonic/front": 637,
+    "/camera/image_raw": 1372,
+    "/ultrasonic/left": 637,
+    "/ultrasonic/rear": 637,
+    "/ultrasonic/right": 637,
+    "map": 288,
+    "/perception/depth_relative": 1183
+  },
+  "states": {
+    "ARMING": 1,
+    "STOP": 268,
+    "LOOK_AROUND": 91,
+    "ALIGN": 195,
+    "EXPLORE": 232,
+    "RELOCALIZE": 34,
+    "WAITING": 2204
+  },
+  "motion_commands": {
+    "rotation": 1020,
+    "translation": 565
+  },
+  "actual_path_length_m": 0.7227561579976831,
+  "actual_exploration_extent_m": 0.6178450601537595,
+  "autonomous_curiosity_path_length_m": 0.7227561579976833,
+  "destinations": [
+    {
+      "goal_id": 1,
+      "goal": [
+        -1.7749999999999995,
+        0.125
+      ],
+      "completed_goals": 0,
+      "simulation_time_s": 20.369
+    }
+  ],
+  "destination_changes_without_arrival": [],
+  "max_normal_linear_acceleration_m_s2": 0.060000000000000074,
+  "max_normal_yaw_acceleration_rad_s2": 0.6000000000000004,
+  "observed_area_first_m2": 0.9400000280141833,
+  "observed_area_last_m2": 7.877500234767797,
+  "last_state": {
+    "active": true,
+    "simulation_time_s": 152.911,
+    "mode": "explore",
+    "attitude": {
+      "roll_deg": 0.0077806168406677435,
+      "pitch_deg": 0.01324428686891033,
+      "yaw_deg": 177.5970043323646,
+      "heading_deg": 272.4029956676354,
+      "acceleration_m_s2": [
+        0.0006062092903947283,
+        0.020267052843393397,
+        9.772145712555364
+      ],
+      "angular_velocity_deg_s": [
+        0.033588586673927036,
+        0.19199510370845477,
+        -0.03688228383332308
+      ],
+      "magnetic_field_uT": [
+        1.6445333363390282,
+        -40.928382554576295,
+        12.454307274340147
+      ],
+      "ready": true,
+      "imu_age_s": 0.0019484999938867986,
+      "mag_age_s": 0.015111533000890631
+    },
+    "mapping": {
+      "x_m": -0.5554985292195025,
+      "y_m": -0.09295131026957337,
+      "vo_inliers": 59,
+      "observed_m2": 7.877500000000001,
+      "loop_closures": 0
+    },
+    "state": "WAITING",
+    "reason": "Destination retained; waiting for a safe route to the same destination",
+    "linear_m_s": 0.0,
+    "yaw_rad_s": 0.0,
+    "depth_unit": "relative inverse depth, not metres",
+    "depth_age_wall_s": 0.2037773619958898,
+    "depth_age_sensor_s": 0.2110000000000013,
+    "inference_ms": 68.4359073638916,
+    "scores": [
+      0.09451709687709808,
+      0.0935552567243576,
+      0.09971649944782257
+    ],
+    "near_coverage": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "ultrasound_m": {
+      "front": 1.3195204734802246,
+      "left": 1.318994402885437,
+      "rear": 1.2002334594726562,
+      "right": 0.4166724979877472
+    },
+    "ultrasound_age_s": {
+      "front": 0.2154401149964542,
+      "left": 0.15596342099888716,
+      "rear": 0.09491452099609887,
+      "right": 0.034937029995489866
+    },
+    "frame_id": 1353,
+    "suggested_state": "WAITING",
+    "suggested_reason": "Destination retained; waiting for a safe route to the same destination",
+    "suggested_linear_m_s": 0.0,
+    "suggested_yaw_rad_s": 0.0,
+    "start_requested": true,
+    "arming": false,
+    "command_time_s": 53904.842632021,
+    "target_linear_m_s": 0.0,
+    "target_yaw_rad_s": 0.0,
+    "slam": {
+      "pose": [
+        -0.5554985292195025,
+        -0.09295131026957337,
+        3.0997846713319426
+      ],
+      "ready": true,
+      "status": "TRACKING \u00b7 flat-floor visual/compass SLAM",
+      "inliers": 59,
+      "keyframes": 30,
+      "loop_closures": 0,
+      "observed_m2": 7.877500000000001,
+      "free_m2": 7.087500000000001,
+      "goal": [
+        -1.7749999999999995,
+        0.125
+      ],
+      "goal_id": 1,
+      "completed_goals": 0,
+      "goal_distance_m": 1.2400304314014758,
+      "route_revision": 2,
+      "planner_state": "GOAL_BLOCKED",
+      "interest": "Destination #1 retained; route blocked, waiting for a safe route",
+      "visited_places": 5,
+      "age_s": 0.06532985599915264,
+      "revision": 1350,
+      "plan_ready": true,
+      "plan_age_s": 0.24722052700235508
+    }
+  },
+  "scene_poses_used_only_for_evaluation": true,
+  "errors": []
+}

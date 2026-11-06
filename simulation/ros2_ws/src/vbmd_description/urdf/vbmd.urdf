@@ -1,0 +1,850 @@
+<?xml version='1.0' encoding='utf-8'?>
+<robot name="vbmd_robot">
+  <mujoco>
+    <compiler meshdir="../meshes" discardvisual="false" fusestatic="false" strippath="true" />
+  </mujoco>
+  <link name="base_footprint" />
+  <link name="base_link">
+    <inertial>
+      <origin xyz="0 0 0.047" />
+      <mass value="0.55" />
+      <inertia ixx="0.0009" iyy="0.0013" izz="0.0017" ixy="0" ixz="0" iyz="0" />
+    </inertial>
+    <collision>
+      <origin xyz="0 0 0.0425" rpy="0 0 0" />
+      <geometry>
+        <box size="0.15 0.1 0.035" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="-0.005 0 0.0875" rpy="0 0 0" />
+      <geometry>
+        <box size="0.135 0.09 0.045" />
+      </geometry>
+    </collision>
+    <visual name="base_link_color_0">
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://vbmd_description/meshes/base_link_00.stl" />
+      </geometry>
+      <material name="base_link_mat_0">
+        <color rgba="0.67 0.83 0.86 0.48" />
+      </material>
+    </visual>
+    <visual name="base_link_color_1">
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://vbmd_description/meshes/base_link_01.stl" />
+      </geometry>
+      <material name="base_link_mat_1">
+        <color rgba="0.84 0.62 0.19 1" />
+      </material>
+    </visual>
+    <visual name="base_link_color_2">
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://vbmd_description/meshes/base_link_02.stl" />
+      </geometry>
+      <material name="base_link_mat_2">
+        <color rgba="0.7 0.75 0.79 1" />
+      </material>
+    </visual>
+    <visual name="base_link_color_3">
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://vbmd_description/meshes/base_link_03.stl" />
+      </geometry>
+      <material name="base_link_mat_3">
+        <color rgba="0.88 0.89 0.85 1" />
+      </material>
+    </visual>
+    <visual name="base_link_color_4">
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://vbmd_description/meshes/base_link_04.stl" />
+      </geometry>
+      <material name="base_link_mat_4">
+        <color rgba="1 0.69 0.035 1" />
+      </material>
+    </visual>
+    <visual name="base_link_color_5">
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://vbmd_description/meshes/base_link_05.stl" />
+      </geometry>
+      <material name="base_link_mat_5">
+        <color rgba="0.75 0.46 0.03 1" />
+      </material>
+    </visual>
+    <visual name="base_link_color_6">
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://vbmd_description/meshes/base_link_06.stl" />
+      </geometry>
+      <material name="base_link_mat_6">
+        <color rgba="0.025 0.032 0.041 1" />
+      </material>
+    </visual>
+    <visual name="base_link_color_7">
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://vbmd_description/meshes/base_link_19.stl" />
+      </geometry>
+      <material name="base_link_mat_7">
+        <color rgba="0.015 0.22 0.31 1" />
+      </material>
+    </visual>
+    <visual name="base_link_color_8">
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://vbmd_description/meshes/base_link_20.stl" />
+      </geometry>
+      <material name="base_link_mat_8">
+        <color rgba="0.15 0.85 0.2 1" />
+      </material>
+    </visual>
+    <visual name="base_link_color_9">
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://vbmd_description/meshes/base_link_21.stl" />
+      </geometry>
+      <material name="base_link_mat_9">
+        <color rgba="0.64 0.035 0.065 1" />
+      </material>
+    </visual>
+    <visual name="base_link_color_10">
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://vbmd_description/meshes/base_link_22.stl" />
+      </geometry>
+      <material name="base_link_mat_10">
+        <color rgba="0.025 0.27 0.51 1" />
+      </material>
+    </visual>
+    <visual name="base_link_color_11">
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://vbmd_description/meshes/base_link_23.stl" />
+      </geometry>
+      <material name="base_link_mat_11">
+        <color rgba="0.12 0.14 0.17 1" />
+      </material>
+    </visual>
+    <visual name="base_link_color_12">
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://vbmd_description/meshes/base_link_40.stl" />
+      </geometry>
+      <material name="base_link_mat_12">
+        <color rgba="0.77 0.025 0.04 1" />
+      </material>
+    </visual>
+    <visual name="base_link_color_13">
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://vbmd_description/meshes/base_link_41.stl" />
+      </geometry>
+      <material name="base_link_mat_13">
+        <color rgba="0.98 0.32 0.035 1" />
+      </material>
+    </visual>
+    <visual name="base_link_color_14">
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://vbmd_description/meshes/base_link_42.stl" />
+      </geometry>
+      <material name="base_link_mat_14">
+        <color rgba="0.95 0.77 0.03 1" />
+      </material>
+    </visual>
+    <visual name="base_link_color_15">
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://vbmd_description/meshes/base_link_43.stl" />
+      </geometry>
+      <material name="base_link_mat_15">
+        <color rgba="0.1 0.55 0.23 1" />
+      </material>
+    </visual>
+    <visual name="base_link_color_16">
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://vbmd_description/meshes/base_link_44.stl" />
+      </geometry>
+      <material name="base_link_mat_16">
+        <color rgba="0.03 0.4 0.72 1" />
+      </material>
+    </visual>
+    <visual name="base_link_color_17">
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://vbmd_description/meshes/base_link_45.stl" />
+      </geometry>
+      <material name="base_link_mat_17">
+        <color rgba="0.36 0.13 0.55 1" />
+      </material>
+    </visual>
+    <visual name="base_link_color_18">
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://vbmd_description/meshes/base_link_46.stl" />
+      </geometry>
+      <material name="base_link_mat_18">
+        <color rgba="0.65 0.65 0.64 1" />
+      </material>
+    </visual>
+    <visual name="base_link_color_19">
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://vbmd_description/meshes/base_link_47.stl" />
+      </geometry>
+      <material name="base_link_mat_19">
+        <color rgba="0.42 0.3 0.49 1" />
+      </material>
+    </visual>
+    <visual name="base_link_color_20">
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://vbmd_description/meshes/base_link_48.stl" />
+      </geometry>
+      <material name="base_link_mat_20">
+        <color rgba="0.9 0.33 0.05 1" />
+      </material>
+    </visual>
+    <visual name="base_link_color_21">
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://vbmd_description/meshes/base_link_49.stl" />
+      </geometry>
+      <material name="base_link_mat_21">
+        <color rgba="0.38 0.4 0.44 1" />
+      </material>
+    </visual>
+    <visual name="base_link_color_22">
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://vbmd_description/meshes/base_link_50.stl" />
+      </geometry>
+      <material name="base_link_mat_22">
+        <color rgba="0 0.49 0.51 1" />
+      </material>
+    </visual>
+    <visual name="base_link_color_23">
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://vbmd_description/meshes/base_link_51.stl" />
+      </geometry>
+      <material name="base_link_mat_23">
+        <color rgba="0.92 0.43 0.1 1" />
+      </material>
+    </visual>
+    <visual name="base_link_color_24">
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://vbmd_description/meshes/base_link_62.stl" />
+      </geometry>
+      <material name="base_link_mat_24">
+        <color rgba="1 0.5373 0.8745 1" />
+      </material>
+    </visual>
+    <visual name="base_link_color_25">
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://vbmd_description/meshes/base_link_63.stl" />
+      </geometry>
+      <material name="base_link_mat_25">
+        <color rgba="0.025 0.28 0.36 1" />
+      </material>
+    </visual>
+    <visual name="base_link_color_26">
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://vbmd_description/meshes/base_link_64.stl" />
+      </geometry>
+      <material name="base_link_mat_26">
+        <color rgba="0.025 0.25 0.52 1" />
+      </material>
+    </visual>
+    <visual name="base_link_color_27">
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://vbmd_description/meshes/base_link_65.stl" />
+      </geometry>
+      <material name="base_link_mat_27">
+        <color rgba="0.96 0.97 0.93 1" />
+      </material>
+    </visual>
+    <visual name="base_link_color_28">
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://vbmd_description/meshes/base_link_66.stl" />
+      </geometry>
+      <material name="base_link_mat_28">
+        <color rgba="0.025 0.33 0.23 1" />
+      </material>
+    </visual>
+  </link>
+  <joint name="base_fixed" type="fixed">
+    <parent link="base_footprint" />
+    <child link="base_link" />
+    <origin xyz="0 0 0" rpy="0 0 0" />
+  </joint>
+  <link name="rear_left_wheel_link">
+    <inertial>
+      <origin xyz="0 0 0" />
+      <mass value="0.04" />
+      <inertia ixx="1.092e-05" iyy="1.8e-05" izz="1.092e-05" ixy="0" ixz="0" iyz="0" />
+    </inertial>
+    <collision>
+      <origin xyz="0 0 0" rpy="1.57079633 0 0" />
+      <geometry>
+        <cylinder radius="0.03" length="0.024" />
+      </geometry>
+    </collision>
+    <visual name="rear_left_wheel_link_color_0">
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://vbmd_description/meshes/rear_left_wheel_link_07.stl" />
+      </geometry>
+      <material name="rear_left_wheel_link_mat_0">
+        <color rgba="0.065 0.073 0.084 1" />
+      </material>
+    </visual>
+    <visual name="rear_left_wheel_link_color_1">
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://vbmd_description/meshes/rear_left_wheel_link_08.stl" />
+      </geometry>
+      <material name="rear_left_wheel_link_mat_1">
+        <color rgba="0.025 0.032 0.041 1" />
+      </material>
+    </visual>
+    <visual name="rear_left_wheel_link_color_2">
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://vbmd_description/meshes/rear_left_wheel_link_09.stl" />
+      </geometry>
+      <material name="rear_left_wheel_link_mat_2">
+        <color rgba="1 0.69 0.035 1" />
+      </material>
+    </visual>
+  </link>
+  <joint name="rear_left_wheel_joint" type="continuous">
+    <parent link="base_link" />
+    <child link="rear_left_wheel_link" />
+    <origin xyz="-0.055 0.068 0.03" rpy="0 0 0" />
+    <axis xyz="0 1 0" />
+    <limit effort=".10" velocity="30" />
+    <dynamics damping=".00005" friction=".00005" />
+  </joint>
+  <link name="rear_right_wheel_link">
+    <inertial>
+      <origin xyz="0 0 0" />
+      <mass value="0.04" />
+      <inertia ixx="1.092e-05" iyy="1.8e-05" izz="1.092e-05" ixy="0" ixz="0" iyz="0" />
+    </inertial>
+    <collision>
+      <origin xyz="0 0 0" rpy="1.57079633 0 0" />
+      <geometry>
+        <cylinder radius="0.03" length="0.024" />
+      </geometry>
+    </collision>
+    <visual name="rear_right_wheel_link_color_0">
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://vbmd_description/meshes/rear_right_wheel_link_10.stl" />
+      </geometry>
+      <material name="rear_right_wheel_link_mat_0">
+        <color rgba="0.065 0.073 0.084 1" />
+      </material>
+    </visual>
+    <visual name="rear_right_wheel_link_color_1">
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://vbmd_description/meshes/rear_right_wheel_link_11.stl" />
+      </geometry>
+      <material name="rear_right_wheel_link_mat_1">
+        <color rgba="0.025 0.032 0.041 1" />
+      </material>
+    </visual>
+    <visual name="rear_right_wheel_link_color_2">
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://vbmd_description/meshes/rear_right_wheel_link_12.stl" />
+      </geometry>
+      <material name="rear_right_wheel_link_mat_2">
+        <color rgba="1 0.69 0.035 1" />
+      </material>
+    </visual>
+  </link>
+  <joint name="rear_right_wheel_joint" type="continuous">
+    <parent link="base_link" />
+    <child link="rear_right_wheel_link" />
+    <origin xyz="-0.055 -0.068 0.03" rpy="0 0 0" />
+    <axis xyz="0 1 0" />
+    <limit effort=".10" velocity="30" />
+    <dynamics damping=".00005" friction=".00005" />
+  </joint>
+  <link name="front_left_wheel_link">
+    <inertial>
+      <origin xyz="0 0 0" />
+      <mass value="0.04" />
+      <inertia ixx="1.092e-05" iyy="1.8e-05" izz="1.092e-05" ixy="0" ixz="0" iyz="0" />
+    </inertial>
+    <collision>
+      <origin xyz="0 0 0" rpy="1.57079633 0 0" />
+      <geometry>
+        <cylinder radius="0.03" length="0.024" />
+      </geometry>
+    </collision>
+    <visual name="front_left_wheel_link_color_0">
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://vbmd_description/meshes/front_left_wheel_link_13.stl" />
+      </geometry>
+      <material name="front_left_wheel_link_mat_0">
+        <color rgba="0.065 0.073 0.084 1" />
+      </material>
+    </visual>
+    <visual name="front_left_wheel_link_color_1">
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://vbmd_description/meshes/front_left_wheel_link_14.stl" />
+      </geometry>
+      <material name="front_left_wheel_link_mat_1">
+        <color rgba="0.025 0.032 0.041 1" />
+      </material>
+    </visual>
+    <visual name="front_left_wheel_link_color_2">
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://vbmd_description/meshes/front_left_wheel_link_15.stl" />
+      </geometry>
+      <material name="front_left_wheel_link_mat_2">
+        <color rgba="1 0.69 0.035 1" />
+      </material>
+    </visual>
+  </link>
+  <joint name="front_left_wheel_joint" type="continuous">
+    <parent link="base_link" />
+    <child link="front_left_wheel_link" />
+    <origin xyz="0.055 0.068 0.03" rpy="0 0 0" />
+    <axis xyz="0 1 0" />
+    <limit effort=".10" velocity="30" />
+    <dynamics damping=".00005" friction=".00005" />
+  </joint>
+  <link name="front_right_wheel_link">
+    <inertial>
+      <origin xyz="0 0 0" />
+      <mass value="0.04" />
+      <inertia ixx="1.092e-05" iyy="1.8e-05" izz="1.092e-05" ixy="0" ixz="0" iyz="0" />
+    </inertial>
+    <collision>
+      <origin xyz="0 0 0" rpy="1.57079633 0 0" />
+      <geometry>
+        <cylinder radius="0.03" length="0.024" />
+      </geometry>
+    </collision>
+    <visual name="front_right_wheel_link_color_0">
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://vbmd_description/meshes/front_right_wheel_link_16.stl" />
+      </geometry>
+      <material name="front_right_wheel_link_mat_0">
+        <color rgba="0.065 0.073 0.084 1" />
+      </material>
+    </visual>
+    <visual name="front_right_wheel_link_color_1">
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://vbmd_description/meshes/front_right_wheel_link_17.stl" />
+      </geometry>
+      <material name="front_right_wheel_link_mat_1">
+        <color rgba="0.025 0.032 0.041 1" />
+      </material>
+    </visual>
+    <visual name="front_right_wheel_link_color_2">
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://vbmd_description/meshes/front_right_wheel_link_18.stl" />
+      </geometry>
+      <material name="front_right_wheel_link_mat_2">
+        <color rgba="1 0.69 0.035 1" />
+      </material>
+    </visual>
+  </link>
+  <joint name="front_right_wheel_joint" type="continuous">
+    <parent link="base_link" />
+    <child link="front_right_wheel_link" />
+    <origin xyz="0.055 -0.068 0.03" rpy="0 0 0" />
+    <axis xyz="0 1 0" />
+    <limit effort=".10" velocity="30" />
+    <dynamics damping=".00005" friction=".00005" />
+  </joint>
+  <link name="front_ultrasonic_link">
+    <inertial>
+      <origin xyz="0 0 0" />
+      <mass value="0.009" />
+      <inertia ixx="2e-06" iyy="2e-06" izz="2e-06" ixy="0" ixz="0" iyz="0" />
+    </inertial>
+    <collision>
+      <origin xyz="-0.003 0 0" rpy="0 0 0" />
+      <geometry>
+        <box size="0.016 0.045 0.02" />
+      </geometry>
+    </collision>
+    <visual name="front_ultrasonic_link_color_0">
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://vbmd_description/meshes/front_ultrasonic_link_24.stl" />
+      </geometry>
+      <material name="front_ultrasonic_link_mat_0">
+        <color rgba="0.025 0.27 0.51 1" />
+      </material>
+    </visual>
+    <visual name="front_ultrasonic_link_color_1">
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://vbmd_description/meshes/front_ultrasonic_link_25.stl" />
+      </geometry>
+      <material name="front_ultrasonic_link_mat_1">
+        <color rgba="0.7 0.75 0.79 1" />
+      </material>
+    </visual>
+    <visual name="front_ultrasonic_link_color_2">
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://vbmd_description/meshes/front_ultrasonic_link_26.stl" />
+      </geometry>
+      <material name="front_ultrasonic_link_mat_2">
+        <color rgba="0.025 0.032 0.041 1" />
+      </material>
+    </visual>
+    <visual name="front_ultrasonic_link_color_3">
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://vbmd_description/meshes/front_ultrasonic_link_27.stl" />
+      </geometry>
+      <material name="front_ultrasonic_link_mat_3">
+        <color rgba="0.3 0.34 0.36 1" />
+      </material>
+    </visual>
+    <visual name="front_ultrasonic_link_color_4">
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://vbmd_description/meshes/front_ultrasonic_link_28.stl" />
+      </geometry>
+      <material name="front_ultrasonic_link_mat_4">
+        <color rgba="0.84 0.62 0.19 1" />
+      </material>
+    </visual>
+  </link>
+  <joint name="front_ultrasonic_joint" type="fixed">
+    <parent link="base_link" />
+    <child link="front_ultrasonic_link" />
+    <origin xyz="0.072 0 0.051" rpy="0 0 0" />
+  </joint>
+  <link name="front_ultrasonic_frame" />
+  <joint name="front_ultrasonic_frame_fixed" type="fixed">
+    <parent link="front_ultrasonic_link" />
+    <child link="front_ultrasonic_frame" />
+    <origin xyz="0.0126 0 0" rpy="0 0 0" />
+  </joint>
+  <link name="rear_ultrasonic_link">
+    <inertial>
+      <origin xyz="0 0 0" />
+      <mass value="0.009" />
+      <inertia ixx="2e-06" iyy="2e-06" izz="2e-06" ixy="0" ixz="0" iyz="0" />
+    </inertial>
+    <collision>
+      <origin xyz="-0.003 0 0" rpy="0 0 0" />
+      <geometry>
+        <box size="0.016 0.045 0.02" />
+      </geometry>
+    </collision>
+    <visual name="rear_ultrasonic_link_color_0">
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://vbmd_description/meshes/rear_ultrasonic_link_29.stl" />
+      </geometry>
+      <material name="rear_ultrasonic_link_mat_0">
+        <color rgba="0.025 0.27 0.51 1" />
+      </material>
+    </visual>
+    <visual name="rear_ultrasonic_link_color_1">
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://vbmd_description/meshes/rear_ultrasonic_link_30.stl" />
+      </geometry>
+      <material name="rear_ultrasonic_link_mat_1">
+        <color rgba="0.7 0.75 0.79 1" />
+      </material>
+    </visual>
+    <visual name="rear_ultrasonic_link_color_2">
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://vbmd_description/meshes/rear_ultrasonic_link_31.stl" />
+      </geometry>
+      <material name="rear_ultrasonic_link_mat_2">
+        <color rgba="0.025 0.032 0.041 1" />
+      </material>
+    </visual>
+    <visual name="rear_ultrasonic_link_color_3">
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://vbmd_description/meshes/rear_ultrasonic_link_32.stl" />
+      </geometry>
+      <material name="rear_ultrasonic_link_mat_3">
+        <color rgba="0.3 0.34 0.36 1" />
+      </material>
+    </visual>
+    <visual name="rear_ultrasonic_link_color_4">
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://vbmd_description/meshes/rear_ultrasonic_link_33.stl" />
+      </geometry>
+      <material name="rear_ultrasonic_link_mat_4">
+        <color rgba="0.84 0.62 0.19 1" />
+      </material>
+    </visual>
+  </link>
+  <joint name="rear_ultrasonic_joint" type="fixed">
+    <parent link="base_link" />
+    <child link="rear_ultrasonic_link" />
+    <origin xyz="-0.072 0 0.051" rpy="0 0 3.14159265" />
+  </joint>
+  <link name="rear_ultrasonic_frame" />
+  <joint name="rear_ultrasonic_frame_fixed" type="fixed">
+    <parent link="rear_ultrasonic_link" />
+    <child link="rear_ultrasonic_frame" />
+    <origin xyz="0.0126 0 0" rpy="0 0 0" />
+  </joint>
+  <link name="camera_link">
+    <inertial>
+      <origin xyz="0 0 0" />
+      <mass value="0.009" />
+      <inertia ixx="2e-06" iyy="2e-06" izz="2e-06" ixy="0" ixz="0" iyz="0" />
+    </inertial>
+    <collision>
+      <origin xyz="-0.009 0 0.006" rpy="0 0 0" />
+      <geometry>
+        <box size="0.012 0.027 0.04" />
+      </geometry>
+    </collision>
+    <visual name="camera_link_color_0">
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://vbmd_description/meshes/camera_link_34.stl" />
+      </geometry>
+      <material name="camera_link_mat_0">
+        <color rgba="0.025 0.12 0.13 1" />
+      </material>
+    </visual>
+    <visual name="camera_link_color_1">
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://vbmd_description/meshes/camera_link_35.stl" />
+      </geometry>
+      <material name="camera_link_mat_1">
+        <color rgba="0.7 0.75 0.79 1" />
+      </material>
+    </visual>
+    <visual name="camera_link_color_2">
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://vbmd_description/meshes/camera_link_36.stl" />
+      </geometry>
+      <material name="camera_link_mat_2">
+        <color rgba="0.025 0.032 0.041 1" />
+      </material>
+    </visual>
+    <visual name="camera_link_color_3">
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://vbmd_description/meshes/camera_link_37.stl" />
+      </geometry>
+      <material name="camera_link_mat_3">
+        <color rgba="0.08 0.12 0.2 1" />
+      </material>
+    </visual>
+    <visual name="camera_link_color_4">
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://vbmd_description/meshes/camera_link_38.stl" />
+      </geometry>
+      <material name="camera_link_mat_4">
+        <color rgba="0.35 0.47 0.66 1" />
+      </material>
+    </visual>
+    <visual name="camera_link_color_5">
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://vbmd_description/meshes/camera_link_39.stl" />
+      </geometry>
+      <material name="camera_link_mat_5">
+        <color rgba="0.88 0.89 0.85 1" />
+      </material>
+    </visual>
+  </link>
+  <joint name="camera_joint" type="fixed">
+    <parent link="base_link" />
+    <child link="camera_link" />
+    <origin xyz="0.0757 0 0.072" rpy="0 0 0" />
+  </joint>
+  <link name="left_ultrasonic_link">
+    <inertial>
+      <origin xyz="0 0 0" />
+      <mass value="0.009" />
+      <inertia ixx="2e-06" iyy="2e-06" izz="2e-06" ixy="0" ixz="0" iyz="0" />
+    </inertial>
+    <collision>
+      <origin xyz="-0.003 0 0" rpy="0 0 0" />
+      <geometry>
+        <box size="0.016 0.045 0.02" />
+      </geometry>
+    </collision>
+    <visual name="left_ultrasonic_link_color_0">
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://vbmd_description/meshes/left_ultrasonic_link_52.stl" />
+      </geometry>
+      <material name="left_ultrasonic_link_mat_0">
+        <color rgba="0.025 0.27 0.51 1" />
+      </material>
+    </visual>
+    <visual name="left_ultrasonic_link_color_1">
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://vbmd_description/meshes/left_ultrasonic_link_53.stl" />
+      </geometry>
+      <material name="left_ultrasonic_link_mat_1">
+        <color rgba="0.7 0.75 0.79 1" />
+      </material>
+    </visual>
+    <visual name="left_ultrasonic_link_color_2">
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://vbmd_description/meshes/left_ultrasonic_link_54.stl" />
+      </geometry>
+      <material name="left_ultrasonic_link_mat_2">
+        <color rgba="0.025 0.032 0.041 1" />
+      </material>
+    </visual>
+    <visual name="left_ultrasonic_link_color_3">
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://vbmd_description/meshes/left_ultrasonic_link_55.stl" />
+      </geometry>
+      <material name="left_ultrasonic_link_mat_3">
+        <color rgba="0.3 0.34 0.36 1" />
+      </material>
+    </visual>
+    <visual name="left_ultrasonic_link_color_4">
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://vbmd_description/meshes/left_ultrasonic_link_56.stl" />
+      </geometry>
+      <material name="left_ultrasonic_link_mat_4">
+        <color rgba="0.84 0.62 0.19 1" />
+      </material>
+    </visual>
+  </link>
+  <joint name="left_ultrasonic_joint" type="fixed">
+    <parent link="base_link" />
+    <child link="left_ultrasonic_link" />
+    <origin xyz="0 0.055 0.068" rpy="0 0 1.57079633" />
+  </joint>
+  <link name="left_ultrasonic_frame" />
+  <joint name="left_ultrasonic_frame_fixed" type="fixed">
+    <parent link="left_ultrasonic_link" />
+    <child link="left_ultrasonic_frame" />
+    <origin xyz="0.0126 0 0" rpy="0 0 0" />
+  </joint>
+  <link name="right_ultrasonic_link">
+    <inertial>
+      <origin xyz="0 0 0" />
+      <mass value="0.009" />
+      <inertia ixx="2e-06" iyy="2e-06" izz="2e-06" ixy="0" ixz="0" iyz="0" />
+    </inertial>
+    <collision>
+      <origin xyz="-0.003 0 0" rpy="0 0 0" />
+      <geometry>
+        <box size="0.016 0.045 0.02" />
+      </geometry>
+    </collision>
+    <visual name="right_ultrasonic_link_color_0">
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://vbmd_description/meshes/right_ultrasonic_link_57.stl" />
+      </geometry>
+      <material name="right_ultrasonic_link_mat_0">
+        <color rgba="0.025 0.27 0.51 1" />
+      </material>
+    </visual>
+    <visual name="right_ultrasonic_link_color_1">
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://vbmd_description/meshes/right_ultrasonic_link_58.stl" />
+      </geometry>
+      <material name="right_ultrasonic_link_mat_1">
+        <color rgba="0.7 0.75 0.79 1" />
+      </material>
+    </visual>
+    <visual name="right_ultrasonic_link_color_2">
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://vbmd_description/meshes/right_ultrasonic_link_59.stl" />
+      </geometry>
+      <material name="right_ultrasonic_link_mat_2">
+        <color rgba="0.025 0.032 0.041 1" />
+      </material>
+    </visual>
+    <visual name="right_ultrasonic_link_color_3">
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://vbmd_description/meshes/right_ultrasonic_link_60.stl" />
+      </geometry>
+      <material name="right_ultrasonic_link_mat_3">
+        <color rgba="0.3 0.34 0.36 1" />
+      </material>
+    </visual>
+    <visual name="right_ultrasonic_link_color_4">
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://vbmd_description/meshes/right_ultrasonic_link_61.stl" />
+      </geometry>
+      <material name="right_ultrasonic_link_mat_4">
+        <color rgba="0.84 0.62 0.19 1" />
+      </material>
+    </visual>
+  </link>
+  <joint name="right_ultrasonic_joint" type="fixed">
+    <parent link="base_link" />
+    <child link="right_ultrasonic_link" />
+    <origin xyz="0 -0.055 0.068" rpy="0 0 -1.57079633" />
+  </joint>
+  <link name="right_ultrasonic_frame" />
+  <joint name="right_ultrasonic_frame_fixed" type="fixed">
+    <parent link="right_ultrasonic_link" />
+    <child link="right_ultrasonic_frame" />
+    <origin xyz="0.0126 0 0" rpy="0 0 0" />
+  </joint>
+  <link name="camera_optical_frame" />
+  <joint name="camera_optical_fixed" type="fixed">
+    <parent link="camera_link" />
+    <child link="camera_optical_frame" />
+    <origin xyz="0 0 0" rpy="-1.57079633 0 -1.57079633" />
+  </joint>
+  <link name="imu_link" />
+  <joint name="imu_link_fixed" type="fixed">
+    <parent link="base_link" />
+    <child link="imu_link" />
+    <origin xyz="0 -0.02 0.04955" rpy="0 0 0" />
+  </joint>
+  <link name="magnetometer_link" />
+  <joint name="magnetometer_link_fixed" type="fixed">
+    <parent link="base_link" />
+    <child link="magnetometer_link" />
+    <origin xyz="-0.028 0.043 0.1345" rpy="0 0 0" />
+  </joint>
+</robot>

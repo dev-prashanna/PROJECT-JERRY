@@ -1,0 +1,18 @@
+# Configuration fragment for an existing Jazzy Nav2 local_costmap.
+# This file does not supply localization, an occupancy map, a planner or a complete Nav2 bringup.
+# Merge the plugin into local_costmap.plugins alongside your chosen other layers.
+local_costmap:
+  local_costmap:
+    ros__parameters:
+      range_layer:
+        plugin: nav2_costmap_2d::RangeSensorLayer
+        enabled: true
+        topics: [/ultrasonic/front, /ultrasonic/left, /ultrasonic/rear, /ultrasonic/right]
+        input_sensor_type: VARIABLE
+        phi: 1.2
+        inflate_cone: 1.0
+        no_readings_timeout: 1.0
+        clear_on_max_reading: true
+        clear_threshold: 0.2
+        mark_threshold: 0.8
+      footprint: '[[0.085, 0.08], [0.085, -0.08], [-0.085, -0.08], [-0.085, 0.08]]'

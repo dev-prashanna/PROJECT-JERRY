@@ -1,0 +1,776 @@
+{
+  "units": "metres",
+  "source": "VBMD_Robot.FCStd; color-separated CAD geometry",
+  "links": {
+    "base_link": {
+      "origin_mm": [
+        0,
+        0,
+        0
+      ],
+      "yaw_degrees": 0,
+      "visuals": [
+        {
+          "mesh": "base_link_00.stl",
+          "rgba": [
+            0.67,
+            0.83,
+            0.86,
+            0.48
+          ],
+          "triangles": 4784
+        },
+        {
+          "mesh": "base_link_01.stl",
+          "rgba": [
+            0.84,
+            0.62,
+            0.19,
+            1.0
+          ],
+          "triangles": 12364
+        },
+        {
+          "mesh": "base_link_02.stl",
+          "rgba": [
+            0.7,
+            0.75,
+            0.79,
+            1.0
+          ],
+          "triangles": 20776
+        },
+        {
+          "mesh": "base_link_03.stl",
+          "rgba": [
+            0.88,
+            0.89,
+            0.85,
+            1.0
+          ],
+          "triangles": 73408
+        },
+        {
+          "mesh": "base_link_04.stl",
+          "rgba": [
+            1.0,
+            0.69,
+            0.035,
+            1.0
+          ],
+          "triangles": 1008
+        },
+        {
+          "mesh": "base_link_05.stl",
+          "rgba": [
+            0.75,
+            0.46,
+            0.03,
+            1.0
+          ],
+          "triangles": 48
+        },
+        {
+          "mesh": "base_link_06.stl",
+          "rgba": [
+            0.025,
+            0.032,
+            0.041,
+            1.0
+          ],
+          "triangles": 94924
+        },
+        {
+          "mesh": "base_link_19.stl",
+          "rgba": [
+            0.015,
+            0.22,
+            0.31,
+            1.0
+          ],
+          "triangles": 956
+        },
+        {
+          "mesh": "base_link_20.stl",
+          "rgba": [
+            0.15,
+            0.85,
+            0.2,
+            1.0
+          ],
+          "triangles": 12
+        },
+        {
+          "mesh": "base_link_21.stl",
+          "rgba": [
+            0.64,
+            0.035,
+            0.065,
+            1.0
+          ],
+          "triangles": 80232
+        },
+        {
+          "mesh": "base_link_22.stl",
+          "rgba": [
+            0.025,
+            0.27,
+            0.51,
+            1.0
+          ],
+          "triangles": 48
+        },
+        {
+          "mesh": "base_link_23.stl",
+          "rgba": [
+            0.12,
+            0.14,
+            0.17,
+            1.0
+          ],
+          "triangles": 96
+        },
+        {
+          "mesh": "base_link_40.stl",
+          "rgba": [
+            0.77,
+            0.025,
+            0.04,
+            1.0
+          ],
+          "triangles": 27522
+        },
+        {
+          "mesh": "base_link_41.stl",
+          "rgba": [
+            0.98,
+            0.32,
+            0.035,
+            1.0
+          ],
+          "triangles": 27644
+        },
+        {
+          "mesh": "base_link_42.stl",
+          "rgba": [
+            0.95,
+            0.77,
+            0.03,
+            1.0
+          ],
+          "triangles": 27898
+        },
+        {
+          "mesh": "base_link_43.stl",
+          "rgba": [
+            0.1,
+            0.55,
+            0.23,
+            1.0
+          ],
+          "triangles": 27406
+        },
+        {
+          "mesh": "base_link_44.stl",
+          "rgba": [
+            0.03,
+            0.4,
+            0.72,
+            1.0
+          ],
+          "triangles": 27660
+        },
+        {
+          "mesh": "base_link_45.stl",
+          "rgba": [
+            0.36,
+            0.13,
+            0.55,
+            1.0
+          ],
+          "triangles": 27542
+        },
+        {
+          "mesh": "base_link_46.stl",
+          "rgba": [
+            0.65,
+            0.65,
+            0.64,
+            1.0
+          ],
+          "triangles": 28512
+        },
+        {
+          "mesh": "base_link_47.stl",
+          "rgba": [
+            0.42,
+            0.3,
+            0.49,
+            1.0
+          ],
+          "triangles": 36752
+        },
+        {
+          "mesh": "base_link_48.stl",
+          "rgba": [
+            0.9,
+            0.33,
+            0.05,
+            1.0
+          ],
+          "triangles": 34198
+        },
+        {
+          "mesh": "base_link_49.stl",
+          "rgba": [
+            0.38,
+            0.4,
+            0.44,
+            1.0
+          ],
+          "triangles": 35598
+        },
+        {
+          "mesh": "base_link_50.stl",
+          "rgba": [
+            0.0,
+            0.49,
+            0.51,
+            1.0
+          ],
+          "triangles": 25676
+        },
+        {
+          "mesh": "base_link_51.stl",
+          "rgba": [
+            0.92,
+            0.43,
+            0.1,
+            1.0
+          ],
+          "triangles": 18468
+        },
+        {
+          "mesh": "base_link_62.stl",
+          "rgba": [
+            1.0,
+            0.5373,
+            0.8745,
+            1.0
+          ],
+          "triangles": 284
+        },
+        {
+          "mesh": "base_link_63.stl",
+          "rgba": [
+            0.025,
+            0.28,
+            0.36,
+            1.0
+          ],
+          "triangles": 456
+        },
+        {
+          "mesh": "base_link_64.stl",
+          "rgba": [
+            0.025,
+            0.25,
+            0.52,
+            1.0
+          ],
+          "triangles": 484
+        },
+        {
+          "mesh": "base_link_65.stl",
+          "rgba": [
+            0.96,
+            0.97,
+            0.93,
+            1.0
+          ],
+          "triangles": 80
+        },
+        {
+          "mesh": "base_link_66.stl",
+          "rgba": [
+            0.025,
+            0.33,
+            0.23,
+            1.0
+          ],
+          "triangles": 484
+        }
+      ]
+    },
+    "rear_left_wheel_link": {
+      "origin_mm": [
+        -55,
+        68,
+        30
+      ],
+      "yaw_degrees": 0,
+      "visuals": [
+        {
+          "mesh": "rear_left_wheel_link_07.stl",
+          "rgba": [
+            0.065,
+            0.073,
+            0.084,
+            1.0
+          ],
+          "triangles": 464
+        },
+        {
+          "mesh": "rear_left_wheel_link_08.stl",
+          "rgba": [
+            0.025,
+            0.032,
+            0.041,
+            1.0
+          ],
+          "triangles": 2224
+        },
+        {
+          "mesh": "rear_left_wheel_link_09.stl",
+          "rgba": [
+            1.0,
+            0.69,
+            0.035,
+            1.0
+          ],
+          "triangles": 2408
+        }
+      ]
+    },
+    "rear_right_wheel_link": {
+      "origin_mm": [
+        -55,
+        -68,
+        30
+      ],
+      "yaw_degrees": 0,
+      "visuals": [
+        {
+          "mesh": "rear_right_wheel_link_10.stl",
+          "rgba": [
+            0.065,
+            0.073,
+            0.084,
+            1.0
+          ],
+          "triangles": 464
+        },
+        {
+          "mesh": "rear_right_wheel_link_11.stl",
+          "rgba": [
+            0.025,
+            0.032,
+            0.041,
+            1.0
+          ],
+          "triangles": 2224
+        },
+        {
+          "mesh": "rear_right_wheel_link_12.stl",
+          "rgba": [
+            1.0,
+            0.69,
+            0.035,
+            1.0
+          ],
+          "triangles": 2408
+        }
+      ]
+    },
+    "front_left_wheel_link": {
+      "origin_mm": [
+        55,
+        68,
+        30
+      ],
+      "yaw_degrees": 0,
+      "visuals": [
+        {
+          "mesh": "front_left_wheel_link_13.stl",
+          "rgba": [
+            0.065,
+            0.073,
+            0.084,
+            1.0
+          ],
+          "triangles": 464
+        },
+        {
+          "mesh": "front_left_wheel_link_14.stl",
+          "rgba": [
+            0.025,
+            0.032,
+            0.041,
+            1.0
+          ],
+          "triangles": 2224
+        },
+        {
+          "mesh": "front_left_wheel_link_15.stl",
+          "rgba": [
+            1.0,
+            0.69,
+            0.035,
+            1.0
+          ],
+          "triangles": 2408
+        }
+      ]
+    },
+    "front_right_wheel_link": {
+      "origin_mm": [
+        55,
+        -68,
+        30
+      ],
+      "yaw_degrees": 0,
+      "visuals": [
+        {
+          "mesh": "front_right_wheel_link_16.stl",
+          "rgba": [
+            0.065,
+            0.073,
+            0.084,
+            1.0
+          ],
+          "triangles": 464
+        },
+        {
+          "mesh": "front_right_wheel_link_17.stl",
+          "rgba": [
+            0.025,
+            0.032,
+            0.041,
+            1.0
+          ],
+          "triangles": 2224
+        },
+        {
+          "mesh": "front_right_wheel_link_18.stl",
+          "rgba": [
+            1.0,
+            0.69,
+            0.035,
+            1.0
+          ],
+          "triangles": 2408
+        }
+      ]
+    },
+    "front_ultrasonic_link": {
+      "origin_mm": [
+        72,
+        0,
+        51
+      ],
+      "yaw_degrees": 0,
+      "visuals": [
+        {
+          "mesh": "front_ultrasonic_link_24.stl",
+          "rgba": [
+            0.025,
+            0.27,
+            0.51,
+            1.0
+          ],
+          "triangles": 12
+        },
+        {
+          "mesh": "front_ultrasonic_link_25.stl",
+          "rgba": [
+            0.7,
+            0.75,
+            0.79,
+            1.0
+          ],
+          "triangles": 940
+        },
+        {
+          "mesh": "front_ultrasonic_link_26.stl",
+          "rgba": [
+            0.025,
+            0.032,
+            0.041,
+            1.0
+          ],
+          "triangles": 480
+        },
+        {
+          "mesh": "front_ultrasonic_link_27.stl",
+          "rgba": [
+            0.3,
+            0.34,
+            0.36,
+            1.0
+          ],
+          "triangles": 2728
+        },
+        {
+          "mesh": "front_ultrasonic_link_28.stl",
+          "rgba": [
+            0.84,
+            0.62,
+            0.19,
+            1.0
+          ],
+          "triangles": 48
+        }
+      ]
+    },
+    "rear_ultrasonic_link": {
+      "origin_mm": [
+        -72,
+        0,
+        51
+      ],
+      "yaw_degrees": 180,
+      "visuals": [
+        {
+          "mesh": "rear_ultrasonic_link_29.stl",
+          "rgba": [
+            0.025,
+            0.27,
+            0.51,
+            1.0
+          ],
+          "triangles": 12
+        },
+        {
+          "mesh": "rear_ultrasonic_link_30.stl",
+          "rgba": [
+            0.7,
+            0.75,
+            0.79,
+            1.0
+          ],
+          "triangles": 940
+        },
+        {
+          "mesh": "rear_ultrasonic_link_31.stl",
+          "rgba": [
+            0.025,
+            0.032,
+            0.041,
+            1.0
+          ],
+          "triangles": 480
+        },
+        {
+          "mesh": "rear_ultrasonic_link_32.stl",
+          "rgba": [
+            0.3,
+            0.34,
+            0.36,
+            1.0
+          ],
+          "triangles": 2728
+        },
+        {
+          "mesh": "rear_ultrasonic_link_33.stl",
+          "rgba": [
+            0.84,
+            0.62,
+            0.19,
+            1.0
+          ],
+          "triangles": 48
+        }
+      ]
+    },
+    "camera_link": {
+      "origin_mm": [
+        75.7,
+        0,
+        72
+      ],
+      "yaw_degrees": 0,
+      "visuals": [
+        {
+          "mesh": "camera_link_34.stl",
+          "rgba": [
+            0.025,
+            0.12,
+            0.13,
+            1.0
+          ],
+          "triangles": 12
+        },
+        {
+          "mesh": "camera_link_35.stl",
+          "rgba": [
+            0.7,
+            0.75,
+            0.79,
+            1.0
+          ],
+          "triangles": 12
+        },
+        {
+          "mesh": "camera_link_36.stl",
+          "rgba": [
+            0.025,
+            0.032,
+            0.041,
+            1.0
+          ],
+          "triangles": 252
+        },
+        {
+          "mesh": "camera_link_37.stl",
+          "rgba": [
+            0.08,
+            0.12,
+            0.2,
+            1.0
+          ],
+          "triangles": 228
+        },
+        {
+          "mesh": "camera_link_38.stl",
+          "rgba": [
+            0.35,
+            0.47,
+            0.66,
+            1.0
+          ],
+          "triangles": 228
+        },
+        {
+          "mesh": "camera_link_39.stl",
+          "rgba": [
+            0.88,
+            0.89,
+            0.85,
+            1.0
+          ],
+          "triangles": 12
+        }
+      ]
+    },
+    "left_ultrasonic_link": {
+      "origin_mm": [
+        0,
+        55,
+        68
+      ],
+      "yaw_degrees": 90,
+      "visuals": [
+        {
+          "mesh": "left_ultrasonic_link_52.stl",
+          "rgba": [
+            0.025,
+            0.27,
+            0.51,
+            1.0
+          ],
+          "triangles": 12
+        },
+        {
+          "mesh": "left_ultrasonic_link_53.stl",
+          "rgba": [
+            0.7,
+            0.75,
+            0.79,
+            1.0
+          ],
+          "triangles": 940
+        },
+        {
+          "mesh": "left_ultrasonic_link_54.stl",
+          "rgba": [
+            0.025,
+            0.032,
+            0.041,
+            1.0
+          ],
+          "triangles": 480
+        },
+        {
+          "mesh": "left_ultrasonic_link_55.stl",
+          "rgba": [
+            0.3,
+            0.34,
+            0.36,
+            1.0
+          ],
+          "triangles": 2728
+        },
+        {
+          "mesh": "left_ultrasonic_link_56.stl",
+          "rgba": [
+            0.84,
+            0.62,
+            0.19,
+            1.0
+          ],
+          "triangles": 48
+        }
+      ]
+    },
+    "right_ultrasonic_link": {
+      "origin_mm": [
+        0,
+        -55,
+        68
+      ],
+      "yaw_degrees": -90,
+      "visuals": [
+        {
+          "mesh": "right_ultrasonic_link_57.stl",
+          "rgba": [
+            0.025,
+            0.27,
+            0.51,
+            1.0
+          ],
+          "triangles": 12
+        },
+        {
+          "mesh": "right_ultrasonic_link_58.stl",
+          "rgba": [
+            0.7,
+            0.75,
+            0.79,
+            1.0
+          ],
+          "triangles": 940
+        },
+        {
+          "mesh": "right_ultrasonic_link_59.stl",
+          "rgba": [
+            0.025,
+            0.032,
+            0.041,
+            1.0
+          ],
+          "triangles": 480
+        },
+        {
+          "mesh": "right_ultrasonic_link_60.stl",
+          "rgba": [
+            0.3,
+            0.34,
+            0.36,
+            1.0
+          ],
+          "triangles": 2728
+        },
+        {
+          "mesh": "right_ultrasonic_link_61.stl",
+          "rgba": [
+            0.84,
+            0.62,
+            0.19,
+            1.0
+          ],
+          "triangles": 48
+        }
+      ]
+    }
+  }
+}

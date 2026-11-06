@@ -74,8 +74,8 @@ episodic RAG block (budget-capped by `memory_max_context_tokens`).
 | `MEMORY_ENABLED` | 1 | Master switch; engine is `None` when off |
 | `MEMORY_DB_PATH` | `~/.aura/memory/aura_memory.db` | SQLite location |
 | `MEMORY_ASSET_DIR` | `~/.aura/memory/assets` | Cropped object ROIs |
-| `MEMORY_FACE_RECOGNITION_ENABLED` | 0 | Face backend construction |
-| `MEMORY_FACE_BACKEND` | opencv | `opencv` or `face_recognition` |
+| `FACE_RECOGNITION_ENABLED` | 0 | Face backend construction |
+| `FACE_BACKEND` | auto | `opencv` or `face_recognition` |
 | `MEMORY_OBJECT_GROUNDER` | auto | `moondream-box` or `center-prior` |
 | `MEMORY_OBJECT_EMBEDDER` | auto | CLIP if cached, else `sift-color-v1` |
 | `MEMORY_CLIP_ALLOW_DOWNLOAD` | 0 | Never silently download CLIP weights |

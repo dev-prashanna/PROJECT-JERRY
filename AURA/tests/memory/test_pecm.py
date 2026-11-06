@@ -110,6 +110,30 @@ class TestCurtainScenario:
         assert result.payload["events"]
         assert result.payload["status"] == RecallStatus.FOUND.value
 
+    def test_persisted_text_embeddings_reload_after_restart(self, pecm_engine):
+        """Embeddings written by a previous session must reload cleanly.
+
+        Regression: ``_load_text_index`` used the wrong column names, so any
+        restart with rows already in ``text_memory_embeddings`` raised
+        KeyError('embedding') and took the whole memory engine down.
+        """
+        _curtain_turn(pecm_engine)
+        process_pending_jobs(pecm_engine)
+        rows = pecm_engine.store.all_text_embeddings()
+        assert rows, "expected at least one persisted text embedding"
+
+        settings = pecm_engine.settings
+        pecm_engine.shutdown()
+
+        restarted = MultimodalMemoryEngine(settings)
+        restarted.initialize()
+        try:
+            assert restarted.enabled
+            assert restarted.text_index is not None
+            assert len(restarted.text_index) == len(rows)
+        finally:
+            restarted.shutdown()
+
     def test_step6_historical_recall_with_camera_off(self, pecm_engine):
         """Camera unavailable → answer from the durable event log."""
         _curtain_turn(pecm_engine)

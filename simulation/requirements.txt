@@ -1,0 +1,2 @@
+mujoco==3.17.0
+# ROS 2 Python messages, rclpy, OpenCV, numpy and PyYAML are inherited from the host.

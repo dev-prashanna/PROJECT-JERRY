@@ -118,9 +118,17 @@ class _JobHandler:
 class MultimodalMemoryEngine:
     """Narrow public interface used by the orchestrator, tools and GUI."""
 
-    def __init__(self, settings: Optional[MemorySettings] = None, *, llm_client=None):
+    def __init__(self, settings: Optional[MemorySettings] = None, *, llm_client=None, allow_cloud: bool = True):
         self.settings = settings or get_settings().memory
-        self.llm_client = llm_client
+        self.llm_client = llm_client if allow_cloud else None
+        self.gemini_client = None
+        if allow_cloud and self.settings.gemini_enabled and self.settings.gemini_api_key:
+            from src.memory.gemini_memory import GeminiMemoryClient
+            self.gemini_client = GeminiMemoryClient(
+                self.settings.gemini_api_key, self.settings.gemini_model,
+                self.settings.gemini_timeout_s,
+            )
+            self.llm_client = self.gemini_client
         self._lock = threading.RLock()
         self._initialized = False
         self.store: Optional[MemoryStore] = None
@@ -240,12 +248,12 @@ class MultimodalMemoryEngine:
         with self._lock:
             if self.index_worker is not None:
                 try:
-                    self.index_worker.stop(timeout_s=2.0)
+                    self.index_worker.stop(timeout_s=max(2.0, self.settings.gemini_timeout_s + 2.0))
                 except Exception:  # noqa: BLE001
                     log.debug("index worker stop failed")
                 self.index_worker = None
             if self.scheduler is not None:
-                self.scheduler.stop(timeout_s=2.0)
+                self.scheduler.stop(timeout_s=max(2.0, self.settings.gemini_timeout_s + 2.0))
                 self.scheduler = None
             if self.store is not None:
                 try:
@@ -318,7 +326,11 @@ class MultimodalMemoryEngine:
         corrected: list[dict] = []
 
         for fact in extraction.corrections:
-            resolved = self.resolver.resolve_subject(fact.subject)
+            resolved = (
+                self.resolver.resolve_by_name("current speaker", EntityType.PERSON)
+                if fact.subject in {"current_speaker", "i", "me", "myself"}
+                else self.resolver.resolve_subject(fact.subject)
+            )
             target_entity = resolved.entity
             predicate = fact.predicate
             prior = None
@@ -331,22 +343,17 @@ class MultimodalMemoryEngine:
                     or predicate.endswith(f.predicate)
                 ]
                 prior = candidates[0] if candidates else None
-            if prior is None:
-                # Search globally: same predicate family, or any recent fact
-                # whose stored value differs from the correction.
-                lowered_obj = fact.object_value.lower()
+            if prior is None and fact.previous_value:
+                # An explicit "from X to Y" may identify a target without a
+                # subject. Never guess from an unrelated person's newest fact.
                 family = [
                     f
                     for f in store.search_facts(predicate=None, limit=100)
-                    if f.predicate == predicate
-                    or f.predicate.endswith(predicate)
-                    or predicate.endswith(f.predicate)
-                    or predicate in {"name", "project_name"}
+                    if f.object_value.casefold() == fact.previous_value.casefold()
+                    and (target_entity is None or f.subject_entity_id == target_entity.entity_id)
+                    and (f.predicate == predicate or f.predicate.endswith("_" + predicate))
                 ]
-                prior = next(
-                    (f for f in family if f.object_value.lower() != lowered_obj),
-                    None,
-                )
+                prior = family[0] if len(family) == 1 else None
             if prior is None:
                 raise ConflictingMemory(
                     "no prior fact found to correct; store a new fact instead"
@@ -419,7 +426,13 @@ class MultimodalMemoryEngine:
                 source_type=FactSourceType.USER_ASSERTION,
                 extraction_method=extraction.method,
             )
-            if conflicting:
+            # Names and other single-valued attributes replace older values.
+            # Ownership, interests and accomplishments accumulate instead.
+            single_valued = fact.predicate in {
+                "name", "project_name", "age", "birthday", "date_of_birth",
+                "lives_in", "location", "occupation",
+            } or fact.predicate.startswith(("favorite_", "favourite_"))
+            if conflicting and single_valued:
                 store.supersede_fact(conflicting[0].fact_id, mf)
                 corrected.append(
                     {
@@ -496,6 +509,8 @@ class MultimodalMemoryEngine:
                 raise FaceRecognitionUnavailable("face recognition is not enabled")
             if request.frame is None:
                 raise InvalidMemoryRequest("no camera frame supplied for enrollment")
+            if not (request.entity_name or "").strip():
+                raise InvalidMemoryRequest("no name supplied for enrollment")
             entity, match, face_count = self.face_service.enroll_identity(
                 request.entity_name,
                 _frame_to_bgr(request.frame),
@@ -820,6 +835,22 @@ class MultimodalMemoryEngine:
             entity_hint=entity_hint,
         )
 
+    def prepare_conversation_context(self, query: str, history: list) -> tuple[list, str]:
+        context = self.retrieve_context(query)
+        if self.gemini_client is not None and self.store is not None:
+            from src.memory.gemini_memory import select_context
+            candidates = {f.fact_id: f for f in context.retrieved_facts}
+            for fact in self.store.list_facts(limit=64):
+                candidates.setdefault(fact.fact_id, fact)
+            try:
+                history, context = select_context(
+                    self.gemini_client, query, history, list(candidates.values())[:80],
+                    self.store, max_facts=self.settings.max_retrieved_facts,
+                )
+            except Exception:
+                log.warning("Gemini context selection unavailable; using local retrieval")
+        return history, self.build_context_block(context, request_text=query)
+
     def build_context_block(self, ctx: MemoryContext, request_text: str = "") -> str:
         return build_memory_block(
             ctx,
@@ -950,9 +981,29 @@ class MultimodalMemoryEngine:
     def maybe_learn_facts(self, transcript: str, turn_id: str = "") -> Optional[MemoryJob]:
         if not self.settings.auto_learn_facts or not transcript:
             return None
+        payload = {"transcript": transcript, "turn_id": turn_id,
+                   "use_llm": self.settings.use_llm_fact_extraction}
+        if (self.gemini_client is not None and self.settings.use_llm_fact_extraction
+                and self.settings.background_indexing and self.store is not None and turn_id):
+            from src.memory.event_models import IndexJob
+            events = self.store.events_for_turn(turn_id)
+            event = next((e for e in events if e.event_type in
+                          {EventType.USER_TRANSCRIPT, EventType.USER_TEXT}), None)
+            if event is not None:
+                # Persist the work before returning; pending work survives a restart.
+                self.store.upsert_index_job(IndexJob(
+                    job_id=f"facts_{event.event_id}", job_type="extract_facts",
+                    source_id=event.event_id,
+                ))
+                return None
+        if self.scheduler is None or not self.settings.background_indexing:
+            # Disabling background indexing must not disable fact memory.
+            # Gemini still works when background indexing is explicitly disabled.
+            self._remember_fact_payload({**payload, "use_llm": bool(self.gemini_client) and self.settings.use_llm_fact_extraction})
+            return None
         return self.submit_background(
             "remember_fact",
-            {"transcript": transcript, "turn_id": turn_id},
+            payload,
         )
 
     # ------------------------------------------------------------------
@@ -1325,9 +1376,12 @@ class MultimodalMemoryEngine:
         )
         for row in self.store.all_text_embeddings(model_id=self.text_embedder.name):
             try:
-                vec = deserialize_vector(row["embedding"], row["dimension"])
+                vec = deserialize_vector(row["embedding_data"], row["embedding_dimension"])
             except InvalidEmbedding as exc:
                 log.warning("skipping corrupt text embedding %s: %s", row.get("embedding_id"), exc)
+                continue
+            except KeyError as exc:
+                log.warning("skipping malformed text embedding row (%s)", exc)
                 continue
             self.text_index.add(
                 row["embedding_id"], vec, {"source_id": row["source_id"]}

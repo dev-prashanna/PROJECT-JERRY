@@ -1,0 +1,349 @@
+<?xml version='1.0' encoding='utf-8'?>
+<mujoco model="VBMD camera and four sonar robot">
+  <compiler angle="radian" meshdir="../meshes" inertiafromgeom="false" autolimits="true" />
+  <option timestep=".002" gravity="0 0 -9.81" integrator="implicitfast" cone="elliptic" iterations="60" />
+  <visual>
+    <global offwidth="1600" offheight="1200" />
+    <quality shadowsize="4096" offsamples="4" />
+    <map znear=".002" zfar="10" />
+  </visual>
+  <default>
+    <joint damping=".00005" armature=".000001" />
+    <geom solref=".008 1" solimp=".95 .99 .001" friction=".35 .002 .0001" />
+  </default>
+  <asset>
+    <texture name="floor_tex" type="2d" builtin="checker" rgb1=".25 .28 .30" rgb2=".39 .42 .43" width="512" height="512" />
+    <material name="floor_mat" texture="floor_tex" texrepeat="18 14" reflectance=".08" roughness=".8" />
+    <mesh name="base_link_00" file="base_link_00.stl" />
+    <material name="base_link_00_mat" rgba="0.67 0.83 0.86 0.48" specular=".25" shininess=".15" reflectance="0" />
+    <mesh name="base_link_01" file="base_link_01.stl" />
+    <material name="base_link_01_mat" rgba="0.84 0.62 0.19 1" specular=".25" shininess=".15" reflectance="0" />
+    <mesh name="base_link_02" file="base_link_02.stl" />
+    <material name="base_link_02_mat" rgba="0.7 0.75 0.79 1" specular=".65" shininess=".5" reflectance=".08" />
+    <mesh name="base_link_03" file="base_link_03.stl" />
+    <material name="base_link_03_mat" rgba="0.88 0.89 0.85 1" specular=".25" shininess=".15" reflectance="0" />
+    <mesh name="base_link_04" file="base_link_04.stl" />
+    <material name="base_link_04_mat" rgba="1 0.69 0.035 1" specular=".25" shininess=".15" reflectance="0" />
+    <mesh name="base_link_05" file="base_link_05.stl" />
+    <material name="base_link_05_mat" rgba="0.75 0.46 0.03 1" specular=".25" shininess=".15" reflectance="0" />
+    <mesh name="base_link_06" file="base_link_06.stl" />
+    <material name="base_link_06_mat" rgba="0.025 0.032 0.041 1" specular=".25" shininess=".15" reflectance="0" />
+    <mesh name="base_link_19" file="base_link_19.stl" />
+    <material name="base_link_19_mat" rgba="0.015 0.22 0.31 1" specular=".25" shininess=".15" reflectance="0" />
+    <mesh name="base_link_20" file="base_link_20.stl" />
+    <material name="base_link_20_mat" rgba="0.15 0.85 0.2 1" specular=".25" shininess=".15" reflectance="0" />
+    <mesh name="base_link_21" file="base_link_21.stl" />
+    <material name="base_link_21_mat" rgba="0.64 0.035 0.065 1" specular=".25" shininess=".15" reflectance="0" />
+    <mesh name="base_link_22" file="base_link_22.stl" />
+    <material name="base_link_22_mat" rgba="0.025 0.27 0.51 1" specular=".25" shininess=".15" reflectance="0" />
+    <mesh name="base_link_23" file="base_link_23.stl" />
+    <material name="base_link_23_mat" rgba="0.12 0.14 0.17 1" specular=".25" shininess=".15" reflectance="0" />
+    <mesh name="base_link_40" file="base_link_40.stl" />
+    <material name="base_link_40_mat" rgba="0.77 0.025 0.04 1" specular=".25" shininess=".15" reflectance="0" />
+    <mesh name="base_link_41" file="base_link_41.stl" />
+    <material name="base_link_41_mat" rgba="0.98 0.32 0.035 1" specular=".25" shininess=".15" reflectance="0" />
+    <mesh name="base_link_42" file="base_link_42.stl" />
+    <material name="base_link_42_mat" rgba="0.95 0.77 0.03 1" specular=".25" shininess=".15" reflectance="0" />
+    <mesh name="base_link_43" file="base_link_43.stl" />
+    <material name="base_link_43_mat" rgba="0.1 0.55 0.23 1" specular=".25" shininess=".15" reflectance="0" />
+    <mesh name="base_link_44" file="base_link_44.stl" />
+    <material name="base_link_44_mat" rgba="0.03 0.4 0.72 1" specular=".25" shininess=".15" reflectance="0" />
+    <mesh name="base_link_45" file="base_link_45.stl" />
+    <material name="base_link_45_mat" rgba="0.36 0.13 0.55 1" specular=".25" shininess=".15" reflectance="0" />
+    <mesh name="base_link_46" file="base_link_46.stl" />
+    <material name="base_link_46_mat" rgba="0.65 0.65 0.64 1" specular=".25" shininess=".15" reflectance="0" />
+    <mesh name="base_link_47" file="base_link_47.stl" />
+    <material name="base_link_47_mat" rgba="0.42 0.3 0.49 1" specular=".25" shininess=".15" reflectance="0" />
+    <mesh name="base_link_48" file="base_link_48.stl" />
+    <material name="base_link_48_mat" rgba="0.9 0.33 0.05 1" specular=".25" shininess=".15" reflectance="0" />
+    <mesh name="base_link_49" file="base_link_49.stl" />
+    <material name="base_link_49_mat" rgba="0.38 0.4 0.44 1" specular=".25" shininess=".15" reflectance="0" />
+    <mesh name="base_link_50" file="base_link_50.stl" />
+    <material name="base_link_50_mat" rgba="0 0.49 0.51 1" specular=".25" shininess=".15" reflectance="0" />
+    <mesh name="base_link_51" file="base_link_51.stl" />
+    <material name="base_link_51_mat" rgba="0.92 0.43 0.1 1" specular=".25" shininess=".15" reflectance="0" />
+    <mesh name="base_link_62" file="base_link_62.stl" />
+    <material name="base_link_62_mat" rgba="1 0.5373 0.8745 1" specular=".25" shininess=".15" reflectance="0" />
+    <mesh name="base_link_63" file="base_link_63.stl" />
+    <material name="base_link_63_mat" rgba="0.025 0.28 0.36 1" specular=".25" shininess=".15" reflectance="0" />
+    <mesh name="base_link_64" file="base_link_64.stl" />
+    <material name="base_link_64_mat" rgba="0.025 0.25 0.52 1" specular=".25" shininess=".15" reflectance="0" />
+    <mesh name="base_link_65" file="base_link_65.stl" />
+    <material name="base_link_65_mat" rgba="0.96 0.97 0.93 1" specular=".25" shininess=".15" reflectance="0" />
+    <mesh name="base_link_66" file="base_link_66.stl" />
+    <material name="base_link_66_mat" rgba="0.025 0.33 0.23 1" specular=".25" shininess=".15" reflectance="0" />
+    <mesh name="rear_left_wheel_link_07" file="rear_left_wheel_link_07.stl" />
+    <material name="rear_left_wheel_link_07_mat" rgba="0.065 0.073 0.084 1" specular=".25" shininess=".15" reflectance="0" />
+    <mesh name="rear_left_wheel_link_08" file="rear_left_wheel_link_08.stl" />
+    <material name="rear_left_wheel_link_08_mat" rgba="0.025 0.032 0.041 1" specular=".25" shininess=".15" reflectance="0" />
+    <mesh name="rear_left_wheel_link_09" file="rear_left_wheel_link_09.stl" />
+    <material name="rear_left_wheel_link_09_mat" rgba="1 0.69 0.035 1" specular=".25" shininess=".15" reflectance="0" />
+    <mesh name="rear_right_wheel_link_10" file="rear_right_wheel_link_10.stl" />
+    <material name="rear_right_wheel_link_10_mat" rgba="0.065 0.073 0.084 1" specular=".25" shininess=".15" reflectance="0" />
+    <mesh name="rear_right_wheel_link_11" file="rear_right_wheel_link_11.stl" />
+    <material name="rear_right_wheel_link_11_mat" rgba="0.025 0.032 0.041 1" specular=".25" shininess=".15" reflectance="0" />
+    <mesh name="rear_right_wheel_link_12" file="rear_right_wheel_link_12.stl" />
+    <material name="rear_right_wheel_link_12_mat" rgba="1 0.69 0.035 1" specular=".25" shininess=".15" reflectance="0" />
+    <mesh name="front_left_wheel_link_13" file="front_left_wheel_link_13.stl" />
+    <material name="front_left_wheel_link_13_mat" rgba="0.065 0.073 0.084 1" specular=".25" shininess=".15" reflectance="0" />
+    <mesh name="front_left_wheel_link_14" file="front_left_wheel_link_14.stl" />
+    <material name="front_left_wheel_link_14_mat" rgba="0.025 0.032 0.041 1" specular=".25" shininess=".15" reflectance="0" />
+    <mesh name="front_left_wheel_link_15" file="front_left_wheel_link_15.stl" />
+    <material name="front_left_wheel_link_15_mat" rgba="1 0.69 0.035 1" specular=".25" shininess=".15" reflectance="0" />
+    <mesh name="front_right_wheel_link_16" file="front_right_wheel_link_16.stl" />
+    <material name="front_right_wheel_link_16_mat" rgba="0.065 0.073 0.084 1" specular=".25" shininess=".15" reflectance="0" />
+    <mesh name="front_right_wheel_link_17" file="front_right_wheel_link_17.stl" />
+    <material name="front_right_wheel_link_17_mat" rgba="0.025 0.032 0.041 1" specular=".25" shininess=".15" reflectance="0" />
+    <mesh name="front_right_wheel_link_18" file="front_right_wheel_link_18.stl" />
+    <material name="front_right_wheel_link_18_mat" rgba="1 0.69 0.035 1" specular=".25" shininess=".15" reflectance="0" />
+    <mesh name="front_ultrasonic_link_24" file="front_ultrasonic_link_24.stl" />
+    <material name="front_ultrasonic_link_24_mat" rgba="0.025 0.27 0.51 1" specular=".25" shininess=".15" reflectance="0" />
+    <mesh name="front_ultrasonic_link_25" file="front_ultrasonic_link_25.stl" />
+    <material name="front_ultrasonic_link_25_mat" rgba="0.7 0.75 0.79 1" specular=".65" shininess=".5" reflectance=".08" />
+    <mesh name="front_ultrasonic_link_26" file="front_ultrasonic_link_26.stl" />
+    <material name="front_ultrasonic_link_26_mat" rgba="0.025 0.032 0.041 1" specular=".25" shininess=".15" reflectance="0" />
+    <mesh name="front_ultrasonic_link_27" file="front_ultrasonic_link_27.stl" />
+    <material name="front_ultrasonic_link_27_mat" rgba="0.3 0.34 0.36 1" specular=".25" shininess=".15" reflectance="0" />
+    <mesh name="front_ultrasonic_link_28" file="front_ultrasonic_link_28.stl" />
+    <material name="front_ultrasonic_link_28_mat" rgba="0.84 0.62 0.19 1" specular=".25" shininess=".15" reflectance="0" />
+    <mesh name="rear_ultrasonic_link_29" file="rear_ultrasonic_link_29.stl" />
+    <material name="rear_ultrasonic_link_29_mat" rgba="0.025 0.27 0.51 1" specular=".25" shininess=".15" reflectance="0" />
+    <mesh name="rear_ultrasonic_link_30" file="rear_ultrasonic_link_30.stl" />
+    <material name="rear_ultrasonic_link_30_mat" rgba="0.7 0.75 0.79 1" specular=".65" shininess=".5" reflectance=".08" />
+    <mesh name="rear_ultrasonic_link_31" file="rear_ultrasonic_link_31.stl" />
+    <material name="rear_ultrasonic_link_31_mat" rgba="0.025 0.032 0.041 1" specular=".25" shininess=".15" reflectance="0" />
+    <mesh name="rear_ultrasonic_link_32" file="rear_ultrasonic_link_32.stl" />
+    <material name="rear_ultrasonic_link_32_mat" rgba="0.3 0.34 0.36 1" specular=".25" shininess=".15" reflectance="0" />
+    <mesh name="rear_ultrasonic_link_33" file="rear_ultrasonic_link_33.stl" />
+    <material name="rear_ultrasonic_link_33_mat" rgba="0.84 0.62 0.19 1" specular=".25" shininess=".15" reflectance="0" />
+    <mesh name="camera_link_34" file="camera_link_34.stl" />
+    <material name="camera_link_34_mat" rgba="0.025 0.12 0.13 1" specular=".25" shininess=".15" reflectance="0" />
+    <mesh name="camera_link_35" file="camera_link_35.stl" />
+    <material name="camera_link_35_mat" rgba="0.7 0.75 0.79 1" specular=".65" shininess=".5" reflectance=".08" />
+    <mesh name="camera_link_36" file="camera_link_36.stl" />
+    <material name="camera_link_36_mat" rgba="0.025 0.032 0.041 1" specular=".25" shininess=".15" reflectance="0" />
+    <mesh name="camera_link_37" file="camera_link_37.stl" />
+    <material name="camera_link_37_mat" rgba="0.08 0.12 0.2 1" specular=".25" shininess=".15" reflectance="0" />
+    <mesh name="camera_link_38" file="camera_link_38.stl" />
+    <material name="camera_link_38_mat" rgba="0.35 0.47 0.66 1" specular=".25" shininess=".15" reflectance="0" />
+    <mesh name="camera_link_39" file="camera_link_39.stl" />
+    <material name="camera_link_39_mat" rgba="0.88 0.89 0.85 1" specular=".25" shininess=".15" reflectance="0" />
+    <mesh name="left_ultrasonic_link_52" file="left_ultrasonic_link_52.stl" />
+    <material name="left_ultrasonic_link_52_mat" rgba="0.025 0.27 0.51 1" specular=".25" shininess=".15" reflectance="0" />
+    <mesh name="left_ultrasonic_link_53" file="left_ultrasonic_link_53.stl" />
+    <material name="left_ultrasonic_link_53_mat" rgba="0.7 0.75 0.79 1" specular=".65" shininess=".5" reflectance=".08" />
+    <mesh name="left_ultrasonic_link_54" file="left_ultrasonic_link_54.stl" />
+    <material name="left_ultrasonic_link_54_mat" rgba="0.025 0.032 0.041 1" specular=".25" shininess=".15" reflectance="0" />
+    <mesh name="left_ultrasonic_link_55" file="left_ultrasonic_link_55.stl" />
+    <material name="left_ultrasonic_link_55_mat" rgba="0.3 0.34 0.36 1" specular=".25" shininess=".15" reflectance="0" />
+    <mesh name="left_ultrasonic_link_56" file="left_ultrasonic_link_56.stl" />
+    <material name="left_ultrasonic_link_56_mat" rgba="0.84 0.62 0.19 1" specular=".25" shininess=".15" reflectance="0" />
+    <mesh name="right_ultrasonic_link_57" file="right_ultrasonic_link_57.stl" />
+    <material name="right_ultrasonic_link_57_mat" rgba="0.025 0.27 0.51 1" specular=".25" shininess=".15" reflectance="0" />
+    <mesh name="right_ultrasonic_link_58" file="right_ultrasonic_link_58.stl" />
+    <material name="right_ultrasonic_link_58_mat" rgba="0.7 0.75 0.79 1" specular=".65" shininess=".5" reflectance=".08" />
+    <mesh name="right_ultrasonic_link_59" file="right_ultrasonic_link_59.stl" />
+    <material name="right_ultrasonic_link_59_mat" rgba="0.025 0.032 0.041 1" specular=".25" shininess=".15" reflectance="0" />
+    <mesh name="right_ultrasonic_link_60" file="right_ultrasonic_link_60.stl" />
+    <material name="right_ultrasonic_link_60_mat" rgba="0.3 0.34 0.36 1" specular=".25" shininess=".15" reflectance="0" />
+    <mesh name="right_ultrasonic_link_61" file="right_ultrasonic_link_61.stl" />
+    <material name="right_ultrasonic_link_61_mat" rgba="0.84 0.62 0.19 1" specular=".25" shininess=".15" reflectance="0" />
+  </asset>
+  <worldbody>
+    <light name="key" pos="0 -1 3" dir="0 .2 -1" diffuse=".85 .85 .85" castshadow="true" />
+    <light name="fill" pos="-1 1 2" dir=".2 -.2 -1" diffuse=".4 .4 .4" castshadow="false" />
+    <geom name="floor" type="plane" size="3 3 .1" material="floor_mat" group="0" />
+    <geom name="north_wall" type="box" pos="0 1.5 0.7" size="2 0.03 0.7" rgba="0.65 0.68 0.7 1" group="0" />
+    <geom name="south_wall" type="box" pos="0 -1.5 0.7" size="2 0.03 0.7" rgba="0.68 0.65 0.6 1" group="0" />
+    <geom name="east_wall" type="box" pos="2 0 0.7" size="0.03 1.5 0.7" rgba="0.65 0.68 0.7 1" group="0" />
+    <geom name="west_wall" type="box" pos="-2 0 0.7" size="0.03 1.5 0.7" rgba="0.68 0.65 0.6 1" group="0" />
+    <geom name="front_landmark_0" type="box" pos="1.965 -1.38 0.1" size="0.006 0.025 0.018" rgba="0.1 0.1 0.12 1" group="0" />
+    <geom name="front_landmark_1" type="box" pos="1.965 -1.26 0.175" size="0.006 0.03 0.023" rgba="0.38 0.29 0.62 1" group="0" />
+    <geom name="front_landmark_2" type="box" pos="1.965 -1.14 0.25" size="0.006 0.035 0.028" rgba="0.66 0.48 0.12 1" group="0" />
+    <geom name="front_landmark_3" type="box" pos="1.965 -1.02 0.325" size="0.006 0.025 0.033" rgba="0.1 0.67 0.62 1" group="0" />
+    <geom name="front_landmark_4" type="box" pos="1.965 -0.9 0.4" size="0.006 0.03 0.018" rgba="0.38 0.1 0.12 1" group="0" />
+    <geom name="front_landmark_5" type="box" pos="1.965 -0.78 0.1" size="0.006 0.035 0.023" rgba="0.66 0.29 0.62 1" group="0" />
+    <geom name="front_landmark_6" type="box" pos="1.965 -0.66 0.175" size="0.006 0.025 0.028" rgba="0.1 0.48 0.12 1" group="0" />
+    <geom name="front_landmark_7" type="box" pos="1.965 -0.54 0.25" size="0.006 0.03 0.033" rgba="0.38 0.67 0.62 1" group="0" />
+    <geom name="front_landmark_8" type="box" pos="1.965 -0.42 0.325" size="0.006 0.035 0.018" rgba="0.66 0.1 0.12 1" group="0" />
+    <geom name="front_landmark_9" type="box" pos="1.965 -0.3 0.4" size="0.006 0.025 0.023" rgba="0.1 0.29 0.62 1" group="0" />
+    <geom name="front_landmark_10" type="box" pos="1.965 -0.18 0.1" size="0.006 0.03 0.028" rgba="0.38 0.48 0.12 1" group="0" />
+    <geom name="front_landmark_11" type="box" pos="1.965 -0.06 0.175" size="0.006 0.035 0.033" rgba="0.66 0.67 0.62 1" group="0" />
+    <geom name="front_landmark_12" type="box" pos="1.965 0.06 0.25" size="0.006 0.025 0.018" rgba="0.1 0.1 0.12 1" group="0" />
+    <geom name="front_landmark_13" type="box" pos="1.965 0.18 0.325" size="0.006 0.03 0.023" rgba="0.38 0.29 0.62 1" group="0" />
+    <geom name="front_landmark_14" type="box" pos="1.965 0.3 0.4" size="0.006 0.035 0.028" rgba="0.66 0.48 0.12 1" group="0" />
+    <geom name="front_landmark_15" type="box" pos="1.965 0.42 0.1" size="0.006 0.025 0.033" rgba="0.1 0.67 0.62 1" group="0" />
+    <geom name="front_landmark_16" type="box" pos="1.965 0.54 0.175" size="0.006 0.03 0.018" rgba="0.38 0.1 0.12 1" group="0" />
+    <geom name="front_landmark_17" type="box" pos="1.965 0.66 0.25" size="0.006 0.035 0.023" rgba="0.66 0.29 0.62 1" group="0" />
+    <geom name="front_landmark_18" type="box" pos="1.965 0.78 0.325" size="0.006 0.025 0.028" rgba="0.1 0.48 0.12 1" group="0" />
+    <geom name="front_landmark_19" type="box" pos="1.965 0.9 0.4" size="0.006 0.03 0.033" rgba="0.38 0.67 0.62 1" group="0" />
+    <geom name="front_landmark_20" type="box" pos="1.965 1.02 0.1" size="0.006 0.035 0.018" rgba="0.66 0.1 0.12 1" group="0" />
+    <geom name="front_landmark_21" type="box" pos="1.965 1.14 0.175" size="0.006 0.025 0.023" rgba="0.1 0.29 0.62 1" group="0" />
+    <geom name="front_landmark_22" type="box" pos="1.965 1.26 0.25" size="0.006 0.03 0.028" rgba="0.38 0.48 0.12 1" group="0" />
+    <geom name="front_landmark_23" type="box" pos="1.965 1.38 0.325" size="0.006 0.035 0.033" rgba="0.66 0.67 0.62 1" group="0" />
+    <geom name="wall_patch_0_-1" type="box" pos="-1.75 -1.465 0.08" size="0.025 0.006 0.025" rgba="0.12 0.15 0.18 1" group="0" />
+    <geom name="wall_patch_0_1" type="box" pos="-1.75 1.465 0.08" size="0.025 0.006 0.025" rgba="0.12 0.15 0.18 1" group="0" />
+    <geom name="wall_patch_1_-1" type="box" pos="-1.55 -1.465 0.18" size="0.025 0.006 0.025" rgba="0.36 0.32 0.66 1" group="0" />
+    <geom name="wall_patch_1_1" type="box" pos="-1.55 1.465 0.18" size="0.025 0.006 0.025" rgba="0.36 0.32 0.66 1" group="0" />
+    <geom name="wall_patch_2_-1" type="box" pos="-1.35 -1.465 0.28" size="0.025 0.006 0.025" rgba="0.6 0.49 0.18 1" group="0" />
+    <geom name="wall_patch_2_1" type="box" pos="-1.35 1.465 0.28" size="0.025 0.006 0.025" rgba="0.6 0.49 0.18 1" group="0" />
+    <geom name="wall_patch_3_-1" type="box" pos="-1.15 -1.465 0.38" size="0.025 0.006 0.025" rgba="0.12 0.66 0.66 1" group="0" />
+    <geom name="wall_patch_3_1" type="box" pos="-1.15 1.465 0.38" size="0.025 0.006 0.025" rgba="0.12 0.66 0.66 1" group="0" />
+    <geom name="wall_patch_4_-1" type="box" pos="-0.95 -1.465 0.08" size="0.025 0.006 0.025" rgba="0.36 0.15 0.18 1" group="0" />
+    <geom name="wall_patch_4_1" type="box" pos="-0.95 1.465 0.08" size="0.025 0.006 0.025" rgba="0.36 0.15 0.18 1" group="0" />
+    <geom name="wall_patch_5_-1" type="box" pos="-0.75 -1.465 0.18" size="0.025 0.006 0.025" rgba="0.6 0.32 0.66 1" group="0" />
+    <geom name="wall_patch_5_1" type="box" pos="-0.75 1.465 0.18" size="0.025 0.006 0.025" rgba="0.6 0.32 0.66 1" group="0" />
+    <geom name="wall_patch_6_-1" type="box" pos="-0.55 -1.465 0.28" size="0.025 0.006 0.025" rgba="0.12 0.49 0.18 1" group="0" />
+    <geom name="wall_patch_6_1" type="box" pos="-0.55 1.465 0.28" size="0.025 0.006 0.025" rgba="0.12 0.49 0.18 1" group="0" />
+    <geom name="wall_patch_7_-1" type="box" pos="-0.35 -1.465 0.38" size="0.025 0.006 0.025" rgba="0.36 0.66 0.66 1" group="0" />
+    <geom name="wall_patch_7_1" type="box" pos="-0.35 1.465 0.38" size="0.025 0.006 0.025" rgba="0.36 0.66 0.66 1" group="0" />
+    <geom name="wall_patch_8_-1" type="box" pos="-0.15 -1.465 0.08" size="0.025 0.006 0.025" rgba="0.6 0.15 0.18 1" group="0" />
+    <geom name="wall_patch_8_1" type="box" pos="-0.15 1.465 0.08" size="0.025 0.006 0.025" rgba="0.6 0.15 0.18 1" group="0" />
+    <geom name="wall_patch_9_-1" type="box" pos="0.05 -1.465 0.18" size="0.025 0.006 0.025" rgba="0.12 0.32 0.66 1" group="0" />
+    <geom name="wall_patch_9_1" type="box" pos="0.05 1.465 0.18" size="0.025 0.006 0.025" rgba="0.12 0.32 0.66 1" group="0" />
+    <geom name="wall_patch_10_-1" type="box" pos="0.25 -1.465 0.28" size="0.025 0.006 0.025" rgba="0.36 0.49 0.18 1" group="0" />
+    <geom name="wall_patch_10_1" type="box" pos="0.25 1.465 0.28" size="0.025 0.006 0.025" rgba="0.36 0.49 0.18 1" group="0" />
+    <geom name="wall_patch_11_-1" type="box" pos="0.45 -1.465 0.38" size="0.025 0.006 0.025" rgba="0.6 0.66 0.66 1" group="0" />
+    <geom name="wall_patch_11_1" type="box" pos="0.45 1.465 0.38" size="0.025 0.006 0.025" rgba="0.6 0.66 0.66 1" group="0" />
+    <geom name="wall_patch_12_-1" type="box" pos="0.65 -1.465 0.08" size="0.025 0.006 0.025" rgba="0.12 0.15 0.18 1" group="0" />
+    <geom name="wall_patch_12_1" type="box" pos="0.65 1.465 0.08" size="0.025 0.006 0.025" rgba="0.12 0.15 0.18 1" group="0" />
+    <geom name="wall_patch_13_-1" type="box" pos="0.85 -1.465 0.18" size="0.025 0.006 0.025" rgba="0.36 0.32 0.66 1" group="0" />
+    <geom name="wall_patch_13_1" type="box" pos="0.85 1.465 0.18" size="0.025 0.006 0.025" rgba="0.36 0.32 0.66 1" group="0" />
+    <geom name="wall_patch_14_-1" type="box" pos="1.05 -1.465 0.28" size="0.025 0.006 0.025" rgba="0.6 0.49 0.18 1" group="0" />
+    <geom name="wall_patch_14_1" type="box" pos="1.05 1.465 0.28" size="0.025 0.006 0.025" rgba="0.6 0.49 0.18 1" group="0" />
+    <geom name="wall_patch_15_-1" type="box" pos="1.25 -1.465 0.38" size="0.025 0.006 0.025" rgba="0.12 0.66 0.66 1" group="0" />
+    <geom name="wall_patch_15_1" type="box" pos="1.25 1.465 0.38" size="0.025 0.006 0.025" rgba="0.12 0.66 0.66 1" group="0" />
+    <geom name="wall_patch_16_-1" type="box" pos="1.45 -1.465 0.08" size="0.025 0.006 0.025" rgba="0.36 0.15 0.18 1" group="0" />
+    <geom name="wall_patch_16_1" type="box" pos="1.45 1.465 0.08" size="0.025 0.006 0.025" rgba="0.36 0.15 0.18 1" group="0" />
+    <geom name="wall_patch_17_-1" type="box" pos="1.65 -1.465 0.18" size="0.025 0.006 0.025" rgba="0.6 0.32 0.66 1" group="0" />
+    <geom name="wall_patch_17_1" type="box" pos="1.65 1.465 0.18" size="0.025 0.006 0.025" rgba="0.6 0.32 0.66 1" group="0" />
+    <geom name="obstacle_0" type="box" pos="0.85 0.08 0.13" size="0.12 0.15 0.13" rgba="0.55 0.12 0.08 1" group="0" />
+    <geom name="obstacle_1" type="box" pos="-0.65 0.5 0.1" size="0.1 0.1 0.1" rgba="0.08 0.32 0.5 1" group="0" />
+    <geom name="obstacle_2" type="box" pos="0.2 -0.65 0.18" size="0.08 0.11 0.18" rgba="0.58 0.42 0.05 1" group="0" />
+    <geom name="obstacle_3" type="box" pos="1.15 0.75 0.08" size="0.16 0.12 0.08" rgba="0.12 0.4 0.18 1" group="0" />
+    <body name="base_link" pos="0 0 .001">
+      <freejoint name="root" />
+      <inertial pos="0 0 .047" mass=".55" diaginertia=".0009 .0013 .0017" />
+      <geom name="base_collision" type="box" pos="0 0 .0425" size=".075 .05 .0175" group="3" rgba=".2 .4 .6 .1" />
+      <geom name="electronics_collision" type="box" pos="-.005 0 .0875" size=".0675 .045 .0225" group="3" rgba=".2 .4 .6 .1" />
+      <geom name="base_link_00_visual" type="mesh" mesh="base_link_00" material="base_link_00_mat" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="base_link_01_visual" type="mesh" mesh="base_link_01" material="base_link_01_mat" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="base_link_02_visual" type="mesh" mesh="base_link_02" material="base_link_02_mat" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="base_link_03_visual" type="mesh" mesh="base_link_03" material="base_link_03_mat" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="base_link_04_visual" type="mesh" mesh="base_link_04" material="base_link_04_mat" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="base_link_05_visual" type="mesh" mesh="base_link_05" material="base_link_05_mat" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="base_link_06_visual" type="mesh" mesh="base_link_06" material="base_link_06_mat" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="base_link_19_visual" type="mesh" mesh="base_link_19" material="base_link_19_mat" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="base_link_20_visual" type="mesh" mesh="base_link_20" material="base_link_20_mat" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="base_link_21_visual" type="mesh" mesh="base_link_21" material="base_link_21_mat" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="base_link_22_visual" type="mesh" mesh="base_link_22" material="base_link_22_mat" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="base_link_23_visual" type="mesh" mesh="base_link_23" material="base_link_23_mat" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="base_link_40_visual" type="mesh" mesh="base_link_40" material="base_link_40_mat" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="base_link_41_visual" type="mesh" mesh="base_link_41" material="base_link_41_mat" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="base_link_42_visual" type="mesh" mesh="base_link_42" material="base_link_42_mat" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="base_link_43_visual" type="mesh" mesh="base_link_43" material="base_link_43_mat" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="base_link_44_visual" type="mesh" mesh="base_link_44" material="base_link_44_mat" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="base_link_45_visual" type="mesh" mesh="base_link_45" material="base_link_45_mat" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="base_link_46_visual" type="mesh" mesh="base_link_46" material="base_link_46_mat" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="base_link_47_visual" type="mesh" mesh="base_link_47" material="base_link_47_mat" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="base_link_48_visual" type="mesh" mesh="base_link_48" material="base_link_48_mat" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="base_link_49_visual" type="mesh" mesh="base_link_49" material="base_link_49_mat" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="base_link_50_visual" type="mesh" mesh="base_link_50" material="base_link_50_mat" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="base_link_51_visual" type="mesh" mesh="base_link_51" material="base_link_51_mat" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="base_link_62_visual" type="mesh" mesh="base_link_62" material="base_link_62_mat" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="base_link_63_visual" type="mesh" mesh="base_link_63" material="base_link_63_mat" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="base_link_64_visual" type="mesh" mesh="base_link_64" material="base_link_64_mat" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="base_link_65_visual" type="mesh" mesh="base_link_65" material="base_link_65_mat" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="base_link_66_visual" type="mesh" mesh="base_link_66" material="base_link_66_mat" contype="0" conaffinity="0" group="2" density="0" />
+      <body name="rear_left_wheel_link" pos="-0.055 0.068 0.03" euler="0 0 0">
+        <inertial pos="0 0 0" mass=".04" diaginertia="1.092e-5 1.8e-5 1.092e-5" />
+        <joint name="rear_left_wheel_joint" type="hinge" axis="0 1 0" />
+        <geom name="rear_left_wheel_link_collision" type="cylinder" size=".03 .012" euler="1.57079633 0 0" group="3" condim="6" friction=".35 .002 .0001" rgba=".15 .15 .15 1" />
+        <geom name="rear_left_wheel_link_07_visual" type="mesh" mesh="rear_left_wheel_link_07" material="rear_left_wheel_link_07_mat" contype="0" conaffinity="0" group="2" density="0" />
+        <geom name="rear_left_wheel_link_08_visual" type="mesh" mesh="rear_left_wheel_link_08" material="rear_left_wheel_link_08_mat" contype="0" conaffinity="0" group="2" density="0" />
+        <geom name="rear_left_wheel_link_09_visual" type="mesh" mesh="rear_left_wheel_link_09" material="rear_left_wheel_link_09_mat" contype="0" conaffinity="0" group="2" density="0" />
+      </body>
+      <body name="rear_right_wheel_link" pos="-0.055 -0.068 0.03" euler="0 0 0">
+        <inertial pos="0 0 0" mass=".04" diaginertia="1.092e-5 1.8e-5 1.092e-5" />
+        <joint name="rear_right_wheel_joint" type="hinge" axis="0 1 0" />
+        <geom name="rear_right_wheel_link_collision" type="cylinder" size=".03 .012" euler="1.57079633 0 0" group="3" condim="6" friction=".35 .002 .0001" rgba=".15 .15 .15 1" />
+        <geom name="rear_right_wheel_link_10_visual" type="mesh" mesh="rear_right_wheel_link_10" material="rear_right_wheel_link_10_mat" contype="0" conaffinity="0" group="2" density="0" />
+        <geom name="rear_right_wheel_link_11_visual" type="mesh" mesh="rear_right_wheel_link_11" material="rear_right_wheel_link_11_mat" contype="0" conaffinity="0" group="2" density="0" />
+        <geom name="rear_right_wheel_link_12_visual" type="mesh" mesh="rear_right_wheel_link_12" material="rear_right_wheel_link_12_mat" contype="0" conaffinity="0" group="2" density="0" />
+      </body>
+      <body name="front_left_wheel_link" pos="0.055 0.068 0.03" euler="0 0 0">
+        <inertial pos="0 0 0" mass=".04" diaginertia="1.092e-5 1.8e-5 1.092e-5" />
+        <joint name="front_left_wheel_joint" type="hinge" axis="0 1 0" />
+        <geom name="front_left_wheel_link_collision" type="cylinder" size=".03 .012" euler="1.57079633 0 0" group="3" condim="6" friction=".35 .002 .0001" rgba=".15 .15 .15 1" />
+        <geom name="front_left_wheel_link_13_visual" type="mesh" mesh="front_left_wheel_link_13" material="front_left_wheel_link_13_mat" contype="0" conaffinity="0" group="2" density="0" />
+        <geom name="front_left_wheel_link_14_visual" type="mesh" mesh="front_left_wheel_link_14" material="front_left_wheel_link_14_mat" contype="0" conaffinity="0" group="2" density="0" />
+        <geom name="front_left_wheel_link_15_visual" type="mesh" mesh="front_left_wheel_link_15" material="front_left_wheel_link_15_mat" contype="0" conaffinity="0" group="2" density="0" />
+      </body>
+      <body name="front_right_wheel_link" pos="0.055 -0.068 0.03" euler="0 0 0">
+        <inertial pos="0 0 0" mass=".04" diaginertia="1.092e-5 1.8e-5 1.092e-5" />
+        <joint name="front_right_wheel_joint" type="hinge" axis="0 1 0" />
+        <geom name="front_right_wheel_link_collision" type="cylinder" size=".03 .012" euler="1.57079633 0 0" group="3" condim="6" friction=".35 .002 .0001" rgba=".15 .15 .15 1" />
+        <geom name="front_right_wheel_link_16_visual" type="mesh" mesh="front_right_wheel_link_16" material="front_right_wheel_link_16_mat" contype="0" conaffinity="0" group="2" density="0" />
+        <geom name="front_right_wheel_link_17_visual" type="mesh" mesh="front_right_wheel_link_17" material="front_right_wheel_link_17_mat" contype="0" conaffinity="0" group="2" density="0" />
+        <geom name="front_right_wheel_link_18_visual" type="mesh" mesh="front_right_wheel_link_18" material="front_right_wheel_link_18_mat" contype="0" conaffinity="0" group="2" density="0" />
+      </body>
+      <body name="front_ultrasonic_link" pos="0.072 0 0.051" euler="0 0 0">
+        <inertial pos="0 0 0" mass=".009" diaginertia="2e-6 2e-6 2e-6" />
+        <geom name="front_ultrasonic_link_collision" type="box" size=".008 .0225 .010" pos="-.003 0 0" group="3" rgba=".3 .3 .3 .1" />
+        <site name="front_ultrasonic_site" pos=".0126 0 0" size=".001" rgba=".1 .7 .9 1" group="4" />
+        <geom name="front_ultrasonic_link_24_visual" type="mesh" mesh="front_ultrasonic_link_24" material="front_ultrasonic_link_24_mat" contype="0" conaffinity="0" group="2" density="0" />
+        <geom name="front_ultrasonic_link_25_visual" type="mesh" mesh="front_ultrasonic_link_25" material="front_ultrasonic_link_25_mat" contype="0" conaffinity="0" group="2" density="0" />
+        <geom name="front_ultrasonic_link_26_visual" type="mesh" mesh="front_ultrasonic_link_26" material="front_ultrasonic_link_26_mat" contype="0" conaffinity="0" group="2" density="0" />
+        <geom name="front_ultrasonic_link_27_visual" type="mesh" mesh="front_ultrasonic_link_27" material="front_ultrasonic_link_27_mat" contype="0" conaffinity="0" group="2" density="0" />
+        <geom name="front_ultrasonic_link_28_visual" type="mesh" mesh="front_ultrasonic_link_28" material="front_ultrasonic_link_28_mat" contype="0" conaffinity="0" group="2" density="0" />
+      </body>
+      <body name="rear_ultrasonic_link" pos="-0.072 0 0.051" euler="0 0 3.14159265">
+        <inertial pos="0 0 0" mass=".009" diaginertia="2e-6 2e-6 2e-6" />
+        <geom name="rear_ultrasonic_link_collision" type="box" size=".008 .0225 .010" pos="-.003 0 0" group="3" rgba=".3 .3 .3 .1" />
+        <site name="rear_ultrasonic_site" pos=".0126 0 0" size=".001" rgba=".1 .7 .9 1" group="4" />
+        <geom name="rear_ultrasonic_link_29_visual" type="mesh" mesh="rear_ultrasonic_link_29" material="rear_ultrasonic_link_29_mat" contype="0" conaffinity="0" group="2" density="0" />
+        <geom name="rear_ultrasonic_link_30_visual" type="mesh" mesh="rear_ultrasonic_link_30" material="rear_ultrasonic_link_30_mat" contype="0" conaffinity="0" group="2" density="0" />
+        <geom name="rear_ultrasonic_link_31_visual" type="mesh" mesh="rear_ultrasonic_link_31" material="rear_ultrasonic_link_31_mat" contype="0" conaffinity="0" group="2" density="0" />
+        <geom name="rear_ultrasonic_link_32_visual" type="mesh" mesh="rear_ultrasonic_link_32" material="rear_ultrasonic_link_32_mat" contype="0" conaffinity="0" group="2" density="0" />
+        <geom name="rear_ultrasonic_link_33_visual" type="mesh" mesh="rear_ultrasonic_link_33" material="rear_ultrasonic_link_33_mat" contype="0" conaffinity="0" group="2" density="0" />
+      </body>
+      <body name="camera_link" pos="0.0757 0 0.072" euler="0 0 0">
+        <inertial pos="0 0 0" mass=".009" diaginertia="2e-6 2e-6 2e-6" />
+        <geom name="camera_link_collision" type="box" size=".006 .0135 .02" pos="-.009 0 .006" group="3" rgba=".3 .3 .3 .1" />
+        <camera name="esp32_cam" pos="0 0 0" xyaxes="0 -1 0 0 0 1" fovy="55" resolution="640 480" />
+        <geom name="camera_link_34_visual" type="mesh" mesh="camera_link_34" material="camera_link_34_mat" contype="0" conaffinity="0" group="2" density="0" />
+        <geom name="camera_link_35_visual" type="mesh" mesh="camera_link_35" material="camera_link_35_mat" contype="0" conaffinity="0" group="2" density="0" />
+        <geom name="camera_link_36_visual" type="mesh" mesh="camera_link_36" material="camera_link_36_mat" contype="0" conaffinity="0" group="2" density="0" />
+        <geom name="camera_link_37_visual" type="mesh" mesh="camera_link_37" material="camera_link_37_mat" contype="0" conaffinity="0" group="2" density="0" />
+        <geom name="camera_link_38_visual" type="mesh" mesh="camera_link_38" material="camera_link_38_mat" contype="0" conaffinity="0" group="2" density="0" />
+        <geom name="camera_link_39_visual" type="mesh" mesh="camera_link_39" material="camera_link_39_mat" contype="0" conaffinity="0" group="2" density="0" />
+      </body>
+      <body name="left_ultrasonic_link" pos="0 0.055 0.068" euler="0 0 1.57079633">
+        <inertial pos="0 0 0" mass=".009" diaginertia="2e-6 2e-6 2e-6" />
+        <geom name="left_ultrasonic_link_collision" type="box" size=".008 .0225 .010" pos="-.003 0 0" group="3" rgba=".3 .3 .3 .1" />
+        <site name="left_ultrasonic_site" pos=".0126 0 0" size=".001" rgba=".1 .7 .9 1" group="4" />
+        <geom name="left_ultrasonic_link_52_visual" type="mesh" mesh="left_ultrasonic_link_52" material="left_ultrasonic_link_52_mat" contype="0" conaffinity="0" group="2" density="0" />
+        <geom name="left_ultrasonic_link_53_visual" type="mesh" mesh="left_ultrasonic_link_53" material="left_ultrasonic_link_53_mat" contype="0" conaffinity="0" group="2" density="0" />
+        <geom name="left_ultrasonic_link_54_visual" type="mesh" mesh="left_ultrasonic_link_54" material="left_ultrasonic_link_54_mat" contype="0" conaffinity="0" group="2" density="0" />
+        <geom name="left_ultrasonic_link_55_visual" type="mesh" mesh="left_ultrasonic_link_55" material="left_ultrasonic_link_55_mat" contype="0" conaffinity="0" group="2" density="0" />
+        <geom name="left_ultrasonic_link_56_visual" type="mesh" mesh="left_ultrasonic_link_56" material="left_ultrasonic_link_56_mat" contype="0" conaffinity="0" group="2" density="0" />
+      </body>
+      <body name="right_ultrasonic_link" pos="0 -0.055 0.068" euler="0 0 -1.57079633">
+        <inertial pos="0 0 0" mass=".009" diaginertia="2e-6 2e-6 2e-6" />
+        <geom name="right_ultrasonic_link_collision" type="box" size=".008 .0225 .010" pos="-.003 0 0" group="3" rgba=".3 .3 .3 .1" />
+        <site name="right_ultrasonic_site" pos=".0126 0 0" size=".001" rgba=".1 .7 .9 1" group="4" />
+        <geom name="right_ultrasonic_link_57_visual" type="mesh" mesh="right_ultrasonic_link_57" material="right_ultrasonic_link_57_mat" contype="0" conaffinity="0" group="2" density="0" />
+        <geom name="right_ultrasonic_link_58_visual" type="mesh" mesh="right_ultrasonic_link_58" material="right_ultrasonic_link_58_mat" contype="0" conaffinity="0" group="2" density="0" />
+        <geom name="right_ultrasonic_link_59_visual" type="mesh" mesh="right_ultrasonic_link_59" material="right_ultrasonic_link_59_mat" contype="0" conaffinity="0" group="2" density="0" />
+        <geom name="right_ultrasonic_link_60_visual" type="mesh" mesh="right_ultrasonic_link_60" material="right_ultrasonic_link_60_mat" contype="0" conaffinity="0" group="2" density="0" />
+        <geom name="right_ultrasonic_link_61_visual" type="mesh" mesh="right_ultrasonic_link_61" material="right_ultrasonic_link_61_mat" contype="0" conaffinity="0" group="2" density="0" />
+      </body>
+    </body>
+  </worldbody>
+  <actuator>
+    <velocity name="rear_left_wheel_motor" joint="rear_left_wheel_joint" kv=".06" ctrlrange="-25 25" forcerange="-.10 .10" />
+    <velocity name="rear_right_wheel_motor" joint="rear_right_wheel_joint" kv=".06" ctrlrange="-25 25" forcerange="-.10 .10" />
+    <velocity name="front_left_wheel_motor" joint="front_left_wheel_joint" kv=".06" ctrlrange="-25 25" forcerange="-.10 .10" />
+    <velocity name="front_right_wheel_motor" joint="front_right_wheel_joint" kv=".06" ctrlrange="-25 25" forcerange="-.10 .10" />
+  </actuator>
+</mujoco>

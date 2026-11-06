@@ -106,7 +106,16 @@ class MemoryRetriever:
         if self.face_index is None or len(self.face_index) == 0:
             return None, MatchResult(status=MatchStatus.UNAVAILABLE, notes=["face index empty"])
         vec = np.asarray(embedding, dtype=np.float32).reshape(-1)
-        hits = self.face_index.search(vec, k=2)
+        hits = []
+        seen_entities = set()
+        for hit in self.face_index.search(vec, k=len(self.face_index)):
+            entity_id = hit[2].get("entity_id")
+            if entity_id in seen_entities or not self.store.get_entity(entity_id):
+                continue
+            seen_entities.add(entity_id)
+            hits.append(hit)
+            if len(hits) == 2:
+                break
         if not hits:
             return None, MatchResult(status=MatchStatus.UNKNOWN)
         best_id, best_d, meta = hits[0]

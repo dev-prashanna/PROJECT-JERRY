@@ -83,6 +83,9 @@ class CameraPanel(QFrame):
         self._depth_loading = False
         self._init_depth()
 
+        self._face_overlay = None
+        self._init_face_overlay()
+
         self._timer = QTimer(self)
         self._timer.setInterval(66)  # ~15 fps preview
         self._timer.timeout.connect(self.refresh)
@@ -112,6 +115,22 @@ class CameraPanel(QFrame):
             self.depth_title.setVisible(False)
 
     # ------------------------------------------------------------------
+    def _init_face_overlay(self) -> None:
+        """Start the background face detect/match worker if available."""
+        cam = getattr(self._agent, "camera", None)
+        engine = getattr(self._agent, "memory_engine", None)
+        face_service = getattr(engine, "face_service", None) if engine else None
+        if cam is None or face_service is None:
+            return
+        try:
+            from src.perception.face_overlay_service import get_face_overlay_service
+
+            self._face_overlay = get_face_overlay_service(cam, face_service)
+            self._face_overlay.start()
+        except Exception as exc:  # noqa: BLE001 - the overlay is cosmetic
+            print(f"[CameraPanel] face overlay disabled: {exc}")
+            self._face_overlay = None
+
     def refresh(self) -> None:
         try:
             self._refresh_safe()
@@ -134,13 +153,21 @@ class CameraPanel(QFrame):
             self.view.setText("waiting for frames…")
             return
 
-        self._latest_pixmap = frame_to_pixmap(frame.image, self.view.width() or 320, self.view.height() or 240)
+        image = self._annotated(frame)
+        self._latest_pixmap = frame_to_pixmap(image, self.view.width() or 320, self.view.height() or 240)
         if not self._latest_pixmap.isNull():
             self.view.setPixmap(self._latest_pixmap)
 
+        faces = ""
+        overlay = self._face_overlay.latest() if self._face_overlay else None
+        if overlay is not None and overlay.faces and overlay.drawable():
+            matched = sum(1 for f in overlay.faces if f.matched)
+            faces = f" · {len(overlay.faces)} face(s)"
+            if matched:
+                faces += f", {matched} known"
         self.meta.setText(
             f"{frame.width}×{frame.height} · {frame.fps:.0f} fps · "
-            f"age {frame.age_s:.2f}s · {frame.tag}"
+            f"age {frame.age_s:.2f}s · {frame.tag}{faces}"
         )
 
         self._refresh_depth(frame)
@@ -160,6 +187,20 @@ class CameraPanel(QFrame):
             self._blank_streak = 0
             self._warned = False
             self.warn.setVisible(False)
+
+    def _annotated(self, frame: Any) -> Any:
+        """Preview image with face boxes + names stamped on (best effort)."""
+        if self._face_overlay is None:
+            return frame.image
+        overlay = self._face_overlay.latest()
+        if overlay is None or not overlay.faces or not overlay.drawable():
+            return frame.image
+        try:
+            from src.perception.face_overlay_service import draw_face_boxes
+
+            return draw_face_boxes(frame.image, overlay.faces)
+        except Exception:  # noqa: BLE001 - never lose the preview
+            return frame.image
 
     def _refresh_depth(self, frame: Any) -> None:
         """Pull the newest colourized depth map and render it beside RGB."""
@@ -196,5 +237,10 @@ class CameraPanel(QFrame):
         if self._depth_service is not None:
             try:
                 self._depth_service.stop()
+            except Exception:  # noqa: BLE001
+                pass
+        if self._face_overlay is not None:
+            try:
+                self._face_overlay.stop()
             except Exception:  # noqa: BLE001
                 pass

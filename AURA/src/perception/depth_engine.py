@@ -119,7 +119,7 @@ class DepthEngine:
                     f"depth checkpoint '{self.settings.model_id}' not loadable: {exc}",
                     hint="Ensure the HF cache holds the model, or set DEPTH_MODEL.",
                 ) from exc
-            self._model.to(self._device)
+            self._model.to(device=self._device, dtype=torch.float32)
             if self.settings.precision in {"fp16", "bf16"} and self._device == "cuda":
                 self._model = self._model.half() if self.settings.precision == "fp16" else self._model.to(torch.bfloat16)
             self._model.eval()
@@ -154,11 +154,10 @@ class DepthEngine:
             t0 = time.perf_counter()
             rgb = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2RGB)
             inputs = self._processor(images=rgb, return_tensors="pt")
-            pixel = inputs["pixel_values"].to(self._device)
-            if self.settings.precision == "fp16" and self._device == "cuda":
-                pixel = pixel.half()
-            elif self.settings.precision == "bf16" and self._device == "cuda":
-                pixel = pixel.to(torch.bfloat16)
+            # Match the actual weights (including cached checkpoints with a
+            # reduced dtype), rather than assuming processor float32 is valid.
+            parameter = next(self._model.parameters())
+            pixel = inputs["pixel_values"].to(device=parameter.device, dtype=parameter.dtype)
             use_amp = self.settings.precision.startswith("autocast") and self._device == "cuda"
             with torch.inference_mode():
                 if use_amp:

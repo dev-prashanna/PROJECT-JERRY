@@ -19,6 +19,7 @@ Public entry points:
 
 from __future__ import annotations
 
+import re
 import threading
 import time
 from typing import Any, Callable, Optional
@@ -40,7 +41,7 @@ from src.orchestrator.schemas import (
 )
 from src.orchestrator.scheduler import Job, PipelineScheduler
 from src.orchestrator.state_machine import State, StateMachine
-from src.orchestrator.tools import ToolContext, build_registry
+from src.orchestrator.tools import ToolContext, _name_from_transcript, build_registry
 from src.utils.exceptions import AURAError, OfflineError, StaleFrameError
 from src.utils.logger import get_logger
 from src.utils.metrics import REGISTRY, RequestMetrics, StageTimer
@@ -77,7 +78,14 @@ class AIAgent:
             try:
                 from src.memory.engine import MultimodalMemoryEngine
 
-                self.memory_engine = MultimodalMemoryEngine(self.settings.memory)
+                # The engine needs the chat client for LLM fact extraction
+                # and episode summaries; without it only the deterministic
+                # patterns ever run.
+                self.memory_engine = MultimodalMemoryEngine(
+                    self.settings.memory,
+                    llm_client=getattr(self.generator, "client", None),
+                    allow_cloud=not self.settings.orchestrator.offline,
+                )
                 self.memory_engine.initialize()
             except Exception as exc:  # noqa: BLE001 - memory must never block AURA
                 log.warning("memory engine init failed: %s", exc)
@@ -99,6 +107,9 @@ class AIAgent:
 
         self._last_record: Optional[RequestRecord] = None
         self._last_metrics: Optional[RequestMetrics] = None
+        # Name waiting on a "yes" after we offered to remember the speaker's
+        # face; consumed (or dropped) by the very next turn.
+        self._pending_face_enrollment: Optional[str] = None
         self._lock = threading.RLock()
         self._running = False
         self._speaking = threading.Event()
@@ -348,7 +359,9 @@ class AIAgent:
             # -- routing ------------------------------------------------
             if self.sm.state in {State.IDLE, State.TRANSCRIBING, State.LISTENING}:
                 self.sm.try_transition(State.INTERPRETING, "routing")
-            decision = self._route(transcript, metrics)
+            decision = self._face_enrollment_followup(transcript)
+            if decision is None:
+                decision = self._route(transcript, metrics)
             record.plan = decision.plan
             self._emit("route", decision)
             metrics.stop("route")
@@ -381,13 +394,25 @@ class AIAgent:
                 metrics.flags["intent"] = Intent.REPEAT_RESPONSE.value
 
             # -- response ----------------------------------------------
+            # Tools can supply a complete reply without invoking the LLM.
+            # They still need to pass through GENERATING before speech/IDLE.
+            if self.sm.state in {State.INTERPRETING, State.CAPTURING, State.PERCEIVING}:
+                self.sm.transition(State.GENERATING, "compose response")
             if not record.response:
-                if self.sm.state in {State.INTERPRETING, State.CAPTURING, State.PERCEIVING}:
-                    self.sm.transition(State.GENERATING, "compose response")
+                response_history = self.memory.chat_messages()
+                if self.memory_engine is not None and decision.plan.intent not in MEMORY_INTENTS:
+                    try:
+                        response_history, memory_block = self.memory_engine.prepare_conversation_context(
+                            transcript, response_history
+                        )
+                        if memory_block:
+                            record.metadata["memory_block"] = memory_block
+                    except Exception as exc:
+                        log.warning("could not retrieve conversational memory: %s", exc)
                 with StageTimer(metrics, "generate_response"):
                     resp = self.generator.generate(
                         record,
-                        history=self.memory.chat_messages()[-8:],
+                        history=response_history,
                         strategy=self.settings.orchestrator.response_strategy,
                     )
                 metrics.flags["response_strategy"] = resp.strategy
@@ -432,6 +457,105 @@ class AIAgent:
             return record
         finally:
             metrics.stop("route")
+
+    # ------------------------------------------------------------------
+    # face enrollment follow-up (offer → "yes")
+    # ------------------------------------------------------------------
+    def _face_enrollment_followup(self, transcript: str) -> Optional[RouteDecision]:
+        """Consume the pending "remember your face?" offer on the next turn."""
+        name = self._pending_face_enrollment
+        if not name:
+            return None
+        text = (transcript or "").strip()
+        if not text or not is_affirmation(text):
+            # An offer lives exactly one turn; anything else drops it.
+            self._pending_face_enrollment = None
+            return None
+        self._pending_face_enrollment = None
+        if not self.memory_engine or not getattr(self.memory_engine, "face_service", None):
+            return None
+        plan = RoutePlan.model_validate(
+            {
+                "intent": Intent.LEARN_IDENTITY,
+                "requires_camera": True,
+                "requires_vlm": False,
+                "tool": "remember_identity",
+                "tool_arguments": {
+                    "entity_name": name,
+                    "transcript": f"remember my face as {name} (confirmed by: {text})",
+                    "capture_mode": "fresh",
+                },
+                "normalized_question": text[:500],
+                "confidence": 0.99,
+                "rationale": "user confirmed the pending face-enrollment offer",
+            }
+        )
+        return RouteDecision(plan=plan, router="followup")
+
+    def _remember_fact_reply(self, result: ToolResult, plan: RoutePlan) -> str:
+        """Natural confirmation for a stored fact, with the face offer."""
+        payload = result.payload or {}
+        stored = payload.get("stored") or []
+        corrected = payload.get("corrected") or []
+        transcript = str(
+            (plan.tool_arguments or {}).get("transcript") or self.ctx.turn_transcript or ""
+        )
+        name = ""
+        for fact in [*stored, *corrected]:
+            if str(fact.get("predicate") or "") == "name" and fact.get("object_value"):
+                name = str(fact["object_value"]).strip()
+                break
+        if not name:
+            name = _name_from_transcript(transcript)
+
+        own_name = bool(name) and _mentions_own_name(transcript)
+        robot_name = ""
+        if not own_name and not corrected:
+            # Facts addressed to AURA itself ("your name is Jerry") land on the
+            # assistant entity — the LLM extractor names it inconsistently
+            # ("assistant", "self", "aura"), so trust the wording too.
+            addressed_to_aura = bool(
+                re.search(r"\byour name is\b", transcript or "", re.IGNORECASE)
+            )
+            for fact in stored:
+                if str(fact.get("predicate") or "") != "name":
+                    continue
+                value = str(fact.get("object_value") or "").strip()
+                if not value:
+                    continue
+                subject = str(fact.get("subject_name") or "").lower()
+                if subject in _ROBOT_SUBJECTS or addressed_to_aura:
+                    robot_name = value
+                    break
+
+        if own_name:
+            reply = f"Got it — your name is {name}."
+        elif robot_name:
+            reply = f"Got it — you can call me {robot_name}."
+        elif corrected:
+            reply = "Updated."
+        elif stored:
+            reply = "Saved."
+        else:
+            # Nothing durable was extracted — the caller falls through to the
+            # response generator so the user hears plain words, never the
+            # extractor's internal skip reason.
+            return ""
+
+        face_service = None
+        if self.memory_engine is not None:
+            face_service = getattr(self.memory_engine, "face_service", None)
+        if not own_name or face_service is None:
+            self._pending_face_enrollment = None
+            return reply
+
+        enrolled = {
+            str(p.get("name") or "").strip().lower() for p in face_service.list_enrolled()
+        }
+        if name.lower() in enrolled:
+            return f"{reply} I already have your face on file."
+        self._pending_face_enrollment = name
+        return f"{reply} Would you like me to remember your face too?"
 
     # ------------------------------------------------------------------
     # stages
@@ -564,8 +688,24 @@ class AIAgent:
 
         if plan.tool in direct_tools:
             if result.ok:
-                record.response = result.text or "Done."
-                record.response_strategy = "memory_direct"
+                if plan.tool == "remember_fact":
+                    reply = self._remember_fact_reply(result, plan)
+                    # An empty reply means nothing durable was stored: let the
+                    # generator explain that in natural language instead of
+                    # leaking extractor diagnostics.
+                    if reply:
+                        record.response = reply
+                        record.response_strategy = "memory_direct"
+                    else:
+                        record.metadata["memory_note"] = (
+                            "MEMORY WRITE NOTE: nothing durable could be extracted "
+                            "from the transcript, so NOTHING was stored. Say plainly "
+                            "that you did not catch anything to remember; do not "
+                            "claim it was saved."
+                        )
+                else:
+                    record.response = result.text or "Done."
+                    record.response_strategy = "memory_direct"
             elif result.error and not record.response:
                 record.response = _memory_error_message(result)
                 record.response_strategy = "memory_error"
@@ -796,9 +936,61 @@ class AIAgent:
 # module helpers
 # ---------------------------------------------------------------------------
 
+#: Short, unambiguous "yes, go ahead" answers to a pending offer.
+_AFFIRMATION_PATTERNS = [
+    r"^(yes|yeah|yep|yup|yea|y|sure|certainly|absolutely|definitely|of course|"
+    r"please do|go ahead|do it|do that|okay|ok|right|sounds good|bring it on|"
+    r"yes please|yeah please|sure thing|why not|mm[- ]?hmm|uh[- ]?hmm)[.!?]?$",
+]
+
+#: A refusal must beat any affirmation ("no, thanks", "don't").
+_NEGATION_PATTERNS = [
+    r"\b(no|nope|nah|never|do not|don't|dont|stop|cancel|forget it|not now|"
+    r"i'?m good|im good|leave it)\b",
+]
+
+
+def is_affirmation(text: str) -> bool:
+    """True for a bare consent answer to a pending yes/no offer."""
+    cleaned = " ".join((text or "").strip().lower().split())
+    if not cleaned:
+        return False
+    if _matches_any(cleaned, _NEGATION_PATTERNS):
+        return False
+    return bool(_matches_any(cleaned, _AFFIRMATION_PATTERNS))
+
+
+def _matches_any(text: str, patterns: list[str]) -> Optional[re.Match]:
+    for pattern in patterns:
+        m = re.search(pattern, text, re.IGNORECASE)
+        if m:
+            return m
+    return None
+
+
+def _mentions_own_name(transcript: str) -> bool:
+    """True when the transcript states the *speaker's* own name."""
+    return bool(
+        re.search(
+            r"\b(my name is|call me|i am|i'?m)\b",
+            (transcript or ""),
+            re.IGNORECASE,
+        )
+    )
+
+
+#: Entity names the fact extractor uses for facts addressed to AURA itself.
+_ROBOT_SUBJECTS = {"assistant", "self", "aura", "my robot", "the robot"}
+
+
 def _memory_error_message(result: ToolResult) -> str:
     code = str((result.payload or {}).get("error_code") or "")
     error = (result.error or "").lower()
+    if "multimodal memory" in error or "not initialized" in error:
+        return (
+            "My memory system is not available right now, so I could not "
+            "store that. Please try again in a moment."
+        )
     if "multiple faces" in error or code == "MultipleFacesAmbiguous":
         return "I can see more than one face. Please select the person to enroll and confirm."
     if "consent" in error or code == "ConsentRequired":

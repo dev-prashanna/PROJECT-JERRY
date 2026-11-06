@@ -1,0 +1,16 @@
+{
+  "overall_length": 170.0,
+  "overall_width": 160.0,
+  "overall_height": 140.0,
+  "wheel_diameter": 60.0,
+  "wheel_width": 24.0,
+  "wheelbase": 110.0,
+  "chassis_length": 156.0,
+  "chassis_width": 110.0,
+  "plate_thickness": 2.5,
+  "lower_deck_z": 20.0,
+  "middle_deck_z": 54.0,
+  "uno_deck_z": 94.0,
+  "breadboard_z": 86.0,
+  "measurement_note": "Overall length, width, height and wheel diameter supplied by owner, approximate. All other dimensions inferred from photographs; verify before manufacture."
+}

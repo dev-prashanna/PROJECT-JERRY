@@ -1,0 +1,27 @@
+{
+  "simulated_seconds": 3.00999999999989,
+  "elapsed_seconds": 0.9090665860003355,
+  "robot_position_debug_m": [
+    -3.389063599432628e-10,
+    -9.586811541567697e-15,
+    -1.2638974566649127e-05
+  ],
+  "ultrasonic_m": {
+    "front": 0.6428340524721587,
+    "left": 1.4061340562245348,
+    "rear": 1.8884491047933671,
+    "right": 1.398609806155127
+  },
+  "range_update_times_s": {
+    "front": 2.8899999999999033,
+    "left": 2.9499999999998967,
+    "rear": 3.00999999999989,
+    "right": 2.82999999999991
+  },
+  "finite_state": true,
+  "visual_meshes": 63,
+  "actuators": 4,
+  "mujoco_version": "3.17.0",
+  "ground_truth_published": false,
+  "mode": "manual/ROS commands"
+}

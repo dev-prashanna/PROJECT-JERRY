@@ -1,0 +1,87 @@
+{
+  "model": "VBMD_Robot",
+  "freecad_version": "1.1.4",
+  "visible_shape_objects": 266,
+  "document_objects": 576,
+  "invalid_shapes": [],
+  "sketches": [
+    {
+      "name": "Lower_acrylic_deckOutline",
+      "fully_constrained": true
+    },
+    {
+      "name": "Lower_acrylic_deckMountingPattern",
+      "fully_constrained": true
+    },
+    {
+      "name": "Middle_acrylic_deckOutline",
+      "fully_constrained": true
+    },
+    {
+      "name": "Middle_acrylic_deckMountingPattern",
+      "fully_constrained": true
+    }
+  ],
+  "bounding_box_mm": {
+    "length_x": 169.99971225393335,
+    "width_y": 160.0,
+    "height_z": 140.59124450830717,
+    "ground_z_min": 0.0001438730333305216
+  },
+  "owner_envelope_mm": {
+    "length": 170,
+    "width": 160,
+    "height": 140,
+    "wheel_diameter": 60
+  },
+  "wheel_motion_checks": [
+    {
+      "wheel": "Wheel_Front_Left",
+      "angle_test_deg": 90,
+      "center_unchanged": true
+    },
+    {
+      "wheel": "Wheel_Front_Right",
+      "angle_test_deg": 90,
+      "center_unchanged": true
+    },
+    {
+      "wheel": "Wheel_Rear_Left",
+      "angle_test_deg": 90,
+      "center_unchanged": true
+    },
+    {
+      "wheel": "Wheel_Rear_Right",
+      "angle_test_deg": 90,
+      "center_unchanged": true
+    }
+  ],
+  "limitations": [
+    "Photo-derived reconstruction, not metrology or manufacturing approval.",
+    "Internal board dimensions, hole locations, hidden geometry, motor internals and cable routes inferred.",
+    "Wheel motion is visual kinematics; no physics or electrical operation validated.",
+    "Chassis parameters update native decks; edit dimensions.json and rebuild to coordinate all components."
+  ],
+  "stl_facets": 759246,
+  "step_roundtrip": {
+    "valid": true,
+    "solids": 960,
+    "envelope_preserved": true
+  },
+  "navigation_modules": {
+    "mpu6050_chip_center_mm": [
+      0,
+      -20,
+      49.55
+    ],
+    "magnetometer_chip_center_mm": [
+      -28,
+      43,
+      134.5
+    ],
+    "core_collision_check_with_existing_solids": [],
+    "footprints_provisional": true,
+    "mount_axes": "X forward, Y left, Z up; verify actual die axes",
+    "document_objects": 576
+  }
+}

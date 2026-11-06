@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>vbmd_description</name><version>0.1.0</version>
+  <description>Photo-derived VBMD CAD and URDF, Gazebo Harmonic physics, and camera/ultrasound ROS 2 interfaces.</description>
+  <maintainer email="maintainer@example.invalid">VBMD project</maintainer><license>MIT</license>
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <exec_depend>robot_state_publisher</exec_depend><exec_depend>launch_ros</exec_depend>
+  <exec_depend>rclpy</exec_depend><exec_depend>std_msgs</exec_depend><exec_depend>sensor_msgs</exec_depend><exec_depend>geometry_msgs</exec_depend>
+  <exec_depend>nav_msgs</exec_depend><exec_depend>ros_gz_interfaces</exec_depend>
+  <exec_depend>tf2_ros_py</exec_depend><exec_depend>rosgraph_msgs</exec_depend><exec_depend>rviz2</exec_depend><exec_depend>ros_gz_sim</exec_depend><exec_depend>ros_gz_bridge</exec_depend>
+  <export><build_type>ament_cmake</build_type></export>
+</package>

@@ -150,9 +150,10 @@ class ResponseGenerator:
     def _full(self, record: RequestRecord, history: Sequence[dict[str, str]]) -> ResponseResult:
         offline_notice = record.mode == "offline"
         messages = build_response_messages(record, history=history, offline_notice=offline_notice)
+        temperature = self.settings.llm.response_temperature
         llm: LLMResult = self.client.chat(
             messages,
-            temperature=0.2,
+            temperature=temperature,
             max_tokens=self.settings.llm.max_completion_tokens,
         )
         text = (llm.text or "").strip()
@@ -160,7 +161,7 @@ class ResponseGenerator:
             # Reasoning models occasionally spend every token on reasoning.
             llm = self.client.chat(
                 messages,
-                temperature=0.2,
+                temperature=temperature,
                 max_tokens=max(600, self.settings.llm.max_completion_tokens),
             )
             text = (llm.text or "").strip()

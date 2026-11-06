@@ -1,0 +1,25 @@
+{
+  "checkpoint": "Depth Anything V2 Small (existing cached model)",
+  "live_depth_encoding": "32FC1",
+  "live_depth_shape": [
+    480,
+    640
+  ],
+  "camera_frame": "camera_optical_frame",
+  "depth_finite": true,
+  "monitor_mode": true,
+  "inference_ms": 44.72160339355469,
+  "range_labels": [
+    "front",
+    "right",
+    "left",
+    "rear"
+  ],
+  "ultrasound_m": {
+    "front": 0.6424890160560608,
+    "right": 1.389229416847229,
+    "left": 1.3966407775878906,
+    "rear": 1.8754421472549438
+  },
+  "window_running": true
+}

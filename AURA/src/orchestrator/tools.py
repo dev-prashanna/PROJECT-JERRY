@@ -144,9 +144,13 @@ def build_registry(ctx: "ToolContext") -> ToolRegistry:
     )
     def get_system_status() -> ToolResult:
         status = ctx.system_status()
+        mem = status.get("memory") or {}
+        face = "on" if mem.get("face_enabled") else "off"
+        memory = "on" if mem.get("enabled") else "off"
         text = (
             f"mode={status.get('mode')}, state={status.get('state')}, "
-            f"models={status.get('models')}, gpu={status.get('gpu')}"
+            f"models={status.get('models')}, gpu={status.get('gpu')}, "
+            f"memory={memory}, face_recognition={face}"
         )
         return ToolResult(tool="get_system_status", text=text, payload=status)
 
@@ -462,11 +466,14 @@ class ToolContext:
             RememberFactRequest,
         )
 
+        def _fail(message: str) -> ToolResult:
+            # Failures must carry the *tool* name, not the engine operation
+            # name, or the agent can never match them to the routed plan.
+            return ToolResult.failure(_tool_name(operation), message)
+
         engine = self.memory_engine
         if engine is None or not getattr(engine, "enabled", False):
-            return ToolResult.failure(
-                operation, "multimodal memory is not enabled or not initialized"
-            )
+            return _fail("multimodal memory is not enabled or not initialized")
 
         started = time.perf_counter()
 
@@ -481,21 +488,20 @@ class ToolContext:
             if operation == "remember_fact":
                 transcript = _transcript()
                 if not transcript:
-                    return ToolResult.failure(
-                        operation, "no transcript available to remember"
-                    )
+                    return _fail("no transcript available to remember")
                 result = engine.remember_fact(
                     RememberFactRequest(
                         transcript=transcript,
                         turn_id=arguments.get("turn_id", ""),
+                        # Deterministic patterns first; the LLM refines them
+                        # when the engine has a client (settings-gated).
+                        use_llm=bool(arguments.get("use_llm", True)),
                     )
                 )
             elif operation == "correct_fact":
                 transcript = _transcript()
                 if not transcript:
-                    return ToolResult.failure(
-                        operation, "no transcript available to correct"
-                    )
+                    return _fail("no transcript available to correct")
                 result = engine.correct_fact(
                     CorrectFactRequest(
                         transcript=transcript,
@@ -505,15 +511,13 @@ class ToolContext:
             elif operation in {"enroll_person", "recognize_faces"}:
                 frame = self._memory_snapshot(arguments.get("capture_mode", "fresh"))
                 if frame is None:
-                    return ToolResult.failure(operation, "camera snapshot failed")
+                    return _fail("camera snapshot failed")
                 if operation == "enroll_person":
                     name = (arguments.get("entity_name") or "").strip()
                     if not name:
                         name = _name_from_transcript(_transcript())
                     if not name:
-                        return ToolResult.failure(
-                            operation, "could not determine a name for enrollment"
-                        )
+                        return _fail("could not determine a name for enrollment")
                     result = engine.enroll_person(
                         EnrollPersonRequest(
                             entity_name=name,
@@ -534,7 +538,7 @@ class ToolContext:
             elif operation == "enroll_object":
                 frame = self._memory_snapshot(arguments.get("capture_mode", "fresh"))
                 if frame is None:
-                    return ToolResult.failure(operation, "camera snapshot failed")
+                    return _fail("camera snapshot failed")
                 result = engine.enroll_object(
                     EnrollObjectRequest(
                         object_name=arguments.get("object_name", "unnamed object"),
@@ -545,7 +549,7 @@ class ToolContext:
             elif operation == "recognize_objects":
                 frame = self._memory_snapshot(arguments.get("capture_mode", "fresh"))
                 if frame is None:
-                    return ToolResult.failure(operation, "camera snapshot failed")
+                    return _fail("camera snapshot failed")
                 frame_image = frame.image if hasattr(frame, "image") else frame
                 text_query = arguments.get("text_query") or "the object in view"
 
@@ -580,39 +584,27 @@ class ToolContext:
             elif operation == "recall":
                 query = (arguments.get("query") or "").strip() or _transcript()
                 if not query:
-                    return ToolResult.failure(operation, "no query available to recall")
+                    return _fail("no query available to recall")
                 result = engine.search_conversations(query)
             elif operation == "recall_visual":
                 query = (arguments.get("query") or "").strip() or _transcript()
                 result = engine.recall_last_visual_observation(query)
             else:
-                return ToolResult.failure(operation, f"unknown memory operation {operation}")
+                return _fail(f"unknown memory operation {operation}")
 
             payload = dict(result.payload or {})
             payload["operation"] = result.operation
             text = result.message
             if not result.ok:
                 return ToolResult(
-                    tool=operation if operation != "correct_fact" else "correct_memory",
+                    tool=_tool_name(operation),
                     ok=False,
                     text="",
                     error=result.message,
                     payload={"error_code": result.error_code, **payload},
                     duration_s=time.perf_counter() - started,
                 )
-            tool_name = {
-                "remember_fact": "remember_fact",
-                "correct_fact": "correct_memory",
-                "enroll_person": "remember_identity",
-                "recognize_faces": "recognize_person",
-                "enroll_object": "learn_visual_object",
-                "recognize_objects": "recognize_object",
-                "retrieve": "query_memory",
-                "delete_memory": "forget_memory",
-                "list_memories": "list_memories",
-                "recall": "recall_memory",
-                "recall_visual": "recall_visual_memory",
-            }.get(operation, operation)
+            tool_name = _tool_name(operation)
             return ToolResult(
                 tool=tool_name,
                 ok=True,
@@ -621,10 +613,10 @@ class ToolContext:
                 duration_s=time.perf_counter() - started,
             )
         except MemoryError as exc:
-            return ToolResult.failure(operation, str(exc))
+            return _fail(str(exc))
         except Exception as exc:  # noqa: BLE001
             log.exception("memory tool %s crashed", operation)
-            return ToolResult.failure(operation, f"memory operation failed: {exc}")
+            return _fail(f"memory operation failed: {exc}")
 
 
 def _name_from_transcript(transcript: str) -> str:
@@ -651,3 +643,23 @@ def _name_from_forget_transcript(transcript: str) -> str:
         if candidate.lower() not in {"my", "the", "that", "this", "everything", "all"}:
             return candidate[:120]
     return ""
+
+
+#: Engine operation → the tool name the router/agent knows it by.
+_TOOL_NAME = {
+    "remember_fact": "remember_fact",
+    "correct_fact": "correct_memory",
+    "enroll_person": "remember_identity",
+    "recognize_faces": "recognize_person",
+    "enroll_object": "learn_visual_object",
+    "recognize_objects": "recognize_object",
+    "retrieve": "query_memory",
+    "delete_memory": "forget_memory",
+    "list_memories": "list_memories",
+    "recall": "recall_memory",
+    "recall_visual": "recall_visual_memory",
+}
+
+
+def _tool_name(operation: str) -> str:
+    return _TOOL_NAME.get(operation, operation)

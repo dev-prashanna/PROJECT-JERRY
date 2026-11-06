@@ -246,3 +246,7 @@ realtime_depth_app/
 | change neighborhood for measurements | `measurement.region_size` (odd) |
 | use another calibration profile | `calibration.profile` or `--profile PATH` |
 | run on a video file | `source.type: video` + `source.path`, or `--video PATH` |
+
+## Gazebo robot integration
+
+The existing depth engine can now process the robot's ROS camera in a separate live window with four labeled ultrasonic readings and local obstacle avoidance. From the project root, run `simulation/run_depth_view.sh` while Gazebo is running. It starts in monitor mode; use **Start exploring** to enable motion. See [robot integration](docs/robot_integration.md) for thresholds, topics, controls and relative-depth limitations.

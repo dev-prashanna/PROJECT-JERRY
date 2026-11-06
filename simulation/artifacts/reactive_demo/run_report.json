@@ -1,0 +1,27 @@
+{
+  "simulated_seconds": 35.00999999999682,
+  "elapsed_seconds": 1.5539350819999527,
+  "robot_position_debug_m": [
+    0.5219421429714727,
+    1.277432698570267,
+    -2.3280721539634224e-05
+  ],
+  "ultrasonic_m": {
+    "front": 0.5299716833928487,
+    "left": 1.7733514023042054,
+    "rear": 1.3712659668179066,
+    "right": 0.12605301083160664
+  },
+  "range_update_times_s": {
+    "front": 34.80999999999658,
+    "left": 34.86999999999665,
+    "rear": 34.929999999996724,
+    "right": 34.9899999999968
+  },
+  "finite_state": true,
+  "visual_meshes": 63,
+  "actuators": 4,
+  "mujoco_version": "3.17.0",
+  "ground_truth_published": false,
+  "mode": "reactive avoidance"
+}
