@@ -18,6 +18,11 @@ See [Jerry MCP setup and tools](docs/JERRY_MCP.md). The server launcher is `simu
 
 ## Gallery
 
+| Physical prototype — front view | Physical prototype — top view |
+|---|---|
+| ![Jerry physical robot prototype showing its four-wheel chassis and front ultrasonic sensor](assets/jerry-physical-front.jpeg) | ![Top view of Jerry showing the controller boards, breadboard, motor driver and wiring](assets/jerry-physical-top.jpeg) |
+| Jerry's assembled four-wheel prototype with its front ultrasonic sensor and stacked electronics. | The physical prototype's controller boards, breadboard, motor driver and sensor wiring. |
+
 | | |
 |---|---|
 | ![Robot in the Gazebo environment](Robot_Environment.png) | ![Live SLAM exploration dashboard](JERRY_SLAM.png) |
