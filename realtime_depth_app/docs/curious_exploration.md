@@ -43,7 +43,13 @@ switching goals on every frame. The robot:
   from unknown space. It does not drive straight toward an unknown map pixel.
 - Prefers unfamiliar places and loses interest in repeatedly visited areas.
 - Confirms arrival within 0.12 m for 0.5 s, then observes before selecting the next destination. Travel has no periodic observation interruptions.
-- Keeps the same destination even through long delays or a blocked route; it reroutes or observes the same corridor instead of silently changing goals.
+- Keeps its destination while rerouting or observing a blocked corridor. If it
+  gets no closer by at least 5 cm for 60 wall-clock seconds during active
+  exploration, it abandons that destination and chooses another reachable
+  frontier. Turning in place and small pose-estimate jitter do not reset the
+  timer. Monitor mode, pauses and tracking outages do not consume it. The
+  abandoned destination and its 35 cm neighborhood are avoided for five minutes;
+  if no alternative is reachable, the robot holds or performs a bounded scan.
 - Defers to depth/ultrasonic avoidance. At a front emergency stop, or after a six-second escape turn, it may first
   pause, then reverse at 0.035 m/s if rear clearance exceeds 0.35 m and both side
   clearances exceed 0.12 m. This ends after 0.10 m of visually measured movement
@@ -142,7 +148,7 @@ The comprehensive hardware/software description is [JERRY_DESCRIPTION.md](../../
 
 ## Committed destinations, smooth motion and YOLO
 
-Each destination has a stable ID. Neither frontier-score changes nor eight-/twenty-second timeouts can replace it. The existing safe route is retained. Only confirmed arrival permits a new destination, except that resetting the simulator begins a new mapping session. The status table shows the ID, remaining distance and completed destinations.
+Each destination has a stable ID. Frontier-score changes do not replace it. The existing safe route is retained until arrival or 60 seconds without measured travel progress. A stalled goal is skipped without counting an arrival. The status table shows the ID, remaining distance, stall timer and completed destinations. Saved maps survive application and simulator restarts; movement waits for visual relocalization.
 
 Continuous lookahead pursuit and heading hysteresis replace rotate/drive threshold chatter. Commands ramp at bounded acceleration and yaw acceleration; explicit/data-loss/collision stops remain immediate.
 
@@ -185,3 +191,30 @@ no early destination changes. Tracking p95 was 50.7 ms, maximum 159.9 ms; longes
 stationary command interval was 4.95 seconds. Brief safety/recovery holds remain.
 See `simulation/artifacts/curiosity/floor_tracking.json` for measurements,
 including per-destination state counts and the separate YOLO output checks.
+
+## Persistent map memory
+
+The desktop dashboard automatically saves the occupancy map, visual localization
+references, scan history and exploration visit counts every 30 seconds and on
+normal shutdown. Its stable checkpoint is
+`simulation/artifacts/jerry/slam-memory.npz`, independent of the report output
+directory. On reopening, the saved area appears immediately; movement waits until
+the live camera recognizes a saved place. An unrecognized view holds position and
+does not erase or overwrite the map with a new origin.
+
+Use `--map-memory /path/to/room.npz` for separate rooms, or `--fresh-map` to
+explicitly start over. The integrated MCP runtime uses its own
+`simulation/artifacts/jerry/integrated-slam-memory.npz` checkpoint.
+
+In a tight corner, mapping scans select an open turning side rather than requiring
+both sides to be open. A reachable waypoint in already observed space may be used
+to leave a corner before selecting a new frontier; obstacle inflation and unknown
+space clearance still apply.
+
+A corner recovery may bridge an unmapped gap immediately beside the robot using
+fresh local depth and all four ultrasonic readings. This exception is restricted
+to 3 cm steps at at most 0.02 m/s, with a total limit of 0.10 m or four simulation
+seconds. It requires forward clearance above 0.40 m, both sides above 0.12 m,
+rear clearance above 0.10 m, and an obstacle-inflated check against every mapped
+obstacle. Normal destination routes still require observed free space. Recovery
+and stall timers wait for live perception to finish warming up.

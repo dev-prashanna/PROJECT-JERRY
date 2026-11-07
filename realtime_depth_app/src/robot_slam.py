@@ -15,11 +15,13 @@ import threading
 import time
 import multiprocessing as mp
 import queue
+import copy
+from concurrent.futures import ThreadPoolExecutor
 
 import cv2
 import numpy as np
 from scipy import ndimage
-from .robot_avoidance import Decision
+from .robot_avoidance import Decision, SIDES
 from .camera import LatestSlot
 
 
@@ -108,7 +110,10 @@ class PathFollower:
             safe &= ndimage.distance_transform_edt(grid==0)*resolution>=.11
         target=None
         alignment_target=None
-        for lookahead in [.40,.32,.25,.20,.15,.10,.07]:
+        # A small tracking offset can block every normal lookahead near a
+        # corner even though a shorter connection to the route is clear.
+        # Keep the same inflated-map checks for these recovery steps.
+        for lookahead in [.40,.32,.25,.20,.15,.10,.07,.05,.03,.02]:
             along=min(cumulative[-1],progress+lookahead)
             index=min(len(lengths)-1,max(0,int(np.searchsorted(cumulative,along,side='right')-1)))
             point=points[index]+vectors[index]*np.clip((along-cumulative[index])/max(lengths[index],1e-10),0.,1.)
@@ -134,8 +139,11 @@ class PathFollower:
         approach=.065
         if cumulative[-1]-progress<.5:
             approach=max(.012,.24*max(0.,remaining-.10))
-        linear=min(.065,safety.linear,approach)*max(.20,math.cos(error))
-        angular=2.*linear*math.sin(error)/max(.10,float(np.linalg.norm(delta)))
+        # Slow down with the available checked distance instead of driving
+        # a short recovery segment at normal cruising speed.
+        checked_distance=float(np.linalg.norm(delta))
+        linear=min(.065,safety.linear,approach,.5*checked_distance)*max(.20,math.cos(error))
+        angular=2.*linear*math.sin(error)/max(.02,checked_distance)
         if abs(angular)>.35:
             linear*=.35/abs(angular);angular=math.copysign(.35,angular)
         return Decision(float(linear),float(np.clip(angular,-.35,.35)),
@@ -306,9 +314,17 @@ class FrontierPlanner:
         self.goal_distance=None
         self.route_revision=0
         self.navigator=PathFollower()
+        self.last_progress_time=None
+        self.best_goal_distance=math.inf
+        self.stall_seconds=0.
+        self.stalled_goals=0
+        self.last_stall_reason=''
+        self.avoided_goals=[]
 
-    def plan(self, occupancy, pose, now=0.):
-        """Keep one destination for the entire mission, including blocked routes."""
+    def plan(self, occupancy, pose, now=0., wall_now=None, movement_enabled=False):
+        """Keep a goal until arrival or 60 active seconds without translation progress."""
+        progress_clock=now if wall_now is None else wall_now
+        self.avoided_goals=[entry for entry in self.avoided_goals if entry[1]>progress_clock]
         grid = occupancy.grid()
         free = grid == 0
         obstacle_clearance=(ndimage.distance_transform_edt(grid!=100)*occupancy.resolution
@@ -325,7 +341,7 @@ class FrontierPlanner:
             self.last_visit = visit_cell
             self.last_visit_time = now
 
-        # Completion is explicit and debounced. No deadline can replace a goal.
+        # Only confirmed arrival increments completed_goals; a stall does not.
         if self.arrived_at is not None:
             self.path = []
             self.state = 'ARRIVED'
@@ -349,6 +365,25 @@ class FrontierPlanner:
             return
         self.arrived_since = None
 
+        self.stall_seconds=0.
+        if self.goal is None or not movement_enabled:
+            self.last_progress_time=None
+            self.best_goal_distance=math.inf
+        else:
+            if (self.last_progress_time is None or progress_clock<self.last_progress_time
+                    or self.goal_distance<=self.best_goal_distance-.05):
+                self.last_progress_time=progress_clock
+                self.best_goal_distance=self.goal_distance
+            self.stall_seconds=progress_clock-self.last_progress_time
+            if self.stall_seconds>=60.:
+                self.avoided_goals.append((list(self.goal),progress_clock+300.))
+                self.avoided_goals=self.avoided_goals[-64:]
+                self.stalled_goals+=1
+                self.last_stall_reason=f'Destination #{self.goal_id} abandoned after 60 s without progress'
+                self.goal=None;self.path=[];self.goal_distance=None
+                self.last_progress_time=None;self.best_goal_distance=math.inf
+                self.navigator=PathFollower()
+
         if not occupancy.inside(start) or not traversable[start[1], start[0]]:
             self.path = []
             self.state = 'GOAL_HELD' if self.goal is not None else 'NEED_SCAN'
@@ -369,6 +404,14 @@ class FrontierPlanner:
             else:remaining=self.path
             safe=all(segment_clear(a,b,traversable,occupancy.origin,occupancy.resolution)
                      for a,b in zip(remaining[:-1],remaining[1:]))
+            # The retained polyline can be clear while the measured robot
+            # pose has no usable connection to it. Replan the same goal from
+            # the current cell rather than holding that unreachable route.
+            if safe:
+                connection=PathFollower().command(pose,self.path,self.goal,
+                    Decision(.065,0.,'ADVANCE','Route connection check'),
+                    {'grid':grid,'origin':occupancy.origin,'resolution':occupancy.resolution})
+                safe=connection.state!='PLANNING'
             if safe:
                 self.state = 'EXPLORING'
                 self.interest = f'Travelling to destination #{self.goal_id}; {self.goal_distance:.2f} m remaining'
@@ -382,6 +425,7 @@ class FrontierPlanner:
         parent = {}
         queue = [(0., sx, sy)]
         options = []
+        recovery_options=[]
         self.frontiers = []
         unknown_density = ndimage.uniform_filter((grid == -1).astype(float), size=21)
         novelty_cache = {}
@@ -389,6 +433,14 @@ class FrontierPlanner:
             d, x, y = heapq.heappop(queue)
             if d > distances[y, x]:
                 continue
+            world=occupancy.world([x,y])
+            if (math.dist(world,pose[:2])>=.25 and obstacle_clearance[y,x]>=.20
+                    and all(math.dist(world,avoided)>.35 for avoided,_ in self.avoided_goals)
+                    and (self.last_completed_goal is None or math.dist(world,self.last_completed_goal)>.3)):
+                # In a corner, an already observed escape waypoint can be
+                # reachable even when every unfamiliar frontier is too narrow.
+                turn=abs(angle(math.atan2(world[1]-pose[1],world[0]-pose[0])-pose[2]))
+                recovery_options.append((min(.6,obstacle_clearance[y,x])-.15*d*occupancy.resolution-.15*turn,(x,y)))
             if candidates[y, x] and math.dist(occupancy.world([x,y]),pose[:2])>=.25 and obstacle_clearance[y,x]>=.35:
                 world = occupancy.world([x, y])
                 self.frontiers.append(world.tolist())
@@ -399,7 +451,8 @@ class FrontierPlanner:
                     novelty_cache[key] = 1./(1.+nearby)
                 turn = abs(angle(math.atan2(world[1]-pose[1], world[0]-pose[0])-pose[2]))
                 score = 2.5*unknown_density[y, x]+novelty_cache[key]-.18*d*occupancy.resolution-.12*turn
-                if self.last_completed_goal is None or math.dist(world, self.last_completed_goal) > .3:
+                if ((self.last_completed_goal is None or math.dist(world, self.last_completed_goal) > .3)
+                        and all(math.dist(world,avoided)>.35 for avoided,_ in self.avoided_goals)):
                     options.append((score, (x, y)))
             for dx, dy in [(1, 0), (-1, 0), (0, 1), (0, -1), (1, 1), (1, -1), (-1, 1), (-1, -1)]:
                 nx, ny = x+dx, y+dy
@@ -414,6 +467,9 @@ class FrontierPlanner:
                     distances[ny, nx] = nd
                     parent[(nx, ny)] = (x, y)
                     heapq.heappush(queue, (nd, nx, ny))
+
+        if not options and recovery_options and obstacle_clearance[sy,sx]<.35:
+            options=recovery_options
 
         if self.goal is not None:
             gx, gy = occupancy.cell(self.goal)
@@ -437,6 +493,9 @@ class FrontierPlanner:
             self.goal_id += 1
             self.selected_at = now
             self.goal_distance = math.dist(pose[:2], self.goal)
+            self.last_progress_time=progress_clock if movement_enabled else None
+            self.best_goal_distance=self.goal_distance
+            self.stall_seconds=0.
         else:
             self.path = []
             self.state = 'NO_REACHABLE_FRONTIER'
@@ -464,9 +523,15 @@ class FrontierPlanner:
         if self.state in ['GOAL_HELD','GOAL_BLOCKED']:
             return Decision(0.,0.,'WAITING','Destination retained; waiting for a safe route to the same destination')
         if self.state in ['NEED_SCAN','NO_REACHABLE_FRONTIER']:
-            if min(readings['left'].clearance(),readings['right'].clearance())<.17 or readings['rear'].clearance()<.14 or readings['front'].clearance()<.18:
+            direction=getattr(self,'scan_direction',1.)
+            side='left' if direction>0 else 'right'
+            other='right' if direction>0 else 'left'
+            if readings[side].clearance()<.17 and readings[other].clearance()>=.17:
+                direction=-direction;side=other
+            if (readings[side].clearance()<.17 or min(readings['left'].clearance(),readings['right'].clearance())<.09
+                    or readings['rear'].clearance()<.12 or readings['front'].clearance()<.18):
                 return Decision(0., 0., 'STOP', 'Insufficient clearance for mapping scan')
-            return Decision(0., .25, 'LOOK_AROUND', 'Curious scan: looking for new reachable space')
+            return Decision(0., .25*direction, 'LOOK_AROUND', 'Curious scan: looking for new reachable space')
         if not self.path:
             return Decision(0., 0., 'WAITING', 'No reachable frontier; scan or move manually to reveal space')
         if math.dist(pose[:2], self.goal) <= .12:
@@ -494,13 +559,47 @@ class CuriosityPolicy:
         self.relocalize_attempted=set()
         self.navigator=PathFollower()
         self.route_scan_started=None
+        self.scan_direction=1.
+        self.scan_started=None
+        self.scan_yaw=None
+        self.scan_rotation=0.
+        self.clearance_origin=None
+        self.clearance_started=None
+        self.clearance_goal=None
+        self.clearance_active=False
 
     def decide(self,snapshot,readings,safety,ready,now):
+        if snapshot and snapshot.get('capacity_reached'):
+            return Decision(0.,0.,'STOP','SLAM map capacity reached; restart mapping before exploring')
         planner=FrontierPlanner()
         planner.navigator=self.navigator
+        planner.scan_direction=self.scan_direction
         if snapshot:
             planner.path=snapshot['path'];planner.goal=snapshot['goal'];planner.state=snapshot['planner_state']
             planner.navigation=snapshot
+        scanning=bool(snapshot and planner.goal is None and
+                      planner.state in ['NEED_SCAN','NO_REACHABLE_FRONTIER'])
+        if scanning and ready:
+            yaw=snapshot['pose'][2]
+            if self.scan_started is None:
+                self.scan_started=now
+                self.scan_direction=-1. if readings['right'].clearance()>readings['left'].clearance() else 1.
+            if self.scan_yaw is not None:self.scan_rotation+=abs(angle(yaw-self.scan_yaw))
+            self.scan_yaw=yaw
+            if self.scan_rotation>=2*math.pi+.3 or now-self.scan_started>45.:
+                return Decision(0.,0.,'STOP','No reachable frontier after a bounded scan; movement held')
+            if safety.state=='TURN' and safety.angular:
+                self.scan_direction=math.copysign(1.,safety.angular)
+        elif not scanning:
+            self.scan_started=None;self.scan_yaw=None;self.scan_rotation=0.
+        planner.scan_direction=self.scan_direction
+        if ready and planner.goal is not None and safety.state=='TURN':
+            # Forward caution need not undo an in-place route alignment.
+            # planner.command still requires side/rear pivot clearance;
+            # emergency or stale-sensor STOP decisions never enter here.
+            alignment=planner.command(snapshot['pose'],readings,
+                Decision(0.,0.,'ADVANCE','Checking in-place alignment clearance'),True)
+            if alignment.state=='ALIGN':return alignment
         if (not ready and snapshot and snapshot.get('can_bridge_pose') and safety.state=='ADVANCE' and planner.path
                 and readings['front'].clearance()>.45
                 and min(readings['left'].clearance(),readings['right'].clearance())>.20):
@@ -558,7 +657,59 @@ class CuriosityPolicy:
             return planner.command(snapshot['pose'] if snapshot else [0.,0.,0.],readings,safety,ready)
         # Travel is never interrupted for a curiosity timer. Observation occurs
         # only after the planner has confirmed arrival at this destination.
-        return planner.command(snapshot['pose'],readings,safety,ready)
+        command=planner.command(snapshot['pose'],readings,safety,ready)
+        if self.clearance_active and readings['rear'].clearance()>=.23:
+            self.clearance_active=False;self.clearance_origin=None
+        needs_clearance=(command.state=='STOP' and command.reason in
+                         ['Destination retained; insufficient clearance to align','Insufficient clearance for mapping scan'])
+        if ((needs_clearance or self.clearance_active)
+                and safety.state=='ADVANCE' and 'grid' in snapshot
+                and all(s in readings and readings[s].usable() for s in SIDES)
+                and .10<readings['rear'].clearance()<.23
+                and readings['front'].clearance()>.4
+                and min(readings['left'].clearance(),readings['right'].clearance())>.12):
+            # Gain rear pivot clearance without relaxing its threshold or
+            # abandoning the destination. Require a checked forward corridor.
+            pose=snapshot['pose'];identity=tuple(planner.goal) if planner.goal is not None else ('scan',)
+            if self.clearance_goal!=identity:
+                self.clearance_goal=identity;self.clearance_origin=None
+            if self.clearance_origin is None:
+                self.clearance_origin=np.array(pose[:2]);self.clearance_started=now
+            distance=math.dist(pose[:2],self.clearance_origin)
+            if now-self.clearance_started<4. and distance<.10:
+                for step in [.10,.05,.03]:
+                    forward=np.array(pose[:2])+step*np.array([math.cos(pose[2]),math.sin(pose[2])])
+                    target=route_target(pose,[pose[:2],forward.tolist()],snapshot['grid'],
+                                        np.asarray(snapshot['origin']),snapshot['resolution'])
+                    if target is not None:
+                        self.clearance_active=True
+                        return Decision(min(.025,.5*(.10-distance),.5*step),0.,'GAIN_CLEARANCE',
+                                        'Moving within checked free space to gain rear pivot clearance')
+                if planner.goal is None:
+                    # Sparse range cones can disconnect the eroded global
+                    # free-space map right beside the occupied footprint.
+                    # Use the existing fresh depth/range ADVANCE permission
+                    # for one 3 cm local step, never through mapped obstacles.
+                    resolution=snapshot['resolution'];radius=math.ceil(.13/resolution)
+                    yy,xx=np.ogrid[-radius:radius+1,-radius:radius+1]
+                    blocked=ndimage.binary_dilation(snapshot['grid']==100,
+                                                    structure=xx*xx+yy*yy<=radius*radius)
+                    forward=np.array(pose[:2])+.03*np.array([math.cos(pose[2]),math.sin(pose[2])])
+                    if segment_clear(pose[:2],forward,~blocked,np.asarray(snapshot['origin']),resolution):
+                        self.clearance_active=True
+                        return Decision(min(.02,.5*(.10-distance)),0.,'GAIN_CLEARANCE',
+                                        'Bounded local depth/range escape to regain pivot clearance')
+            if self.clearance_active:
+                if command.state!='STOP':
+                    self.clearance_active=False;self.clearance_origin=None
+                    return command
+                return Decision(0.,0.,'STOP','Corner escape limit reached or no safe forward corridor')
+        if command.state=='LOOK_AROUND':
+            # Continue the direction selected by obstacle avoidance instead of
+            # immediately turning back toward the same obstacle.
+            self.scan_direction=math.copysign(1.,command.angular)
+            return command
+        return command
 
 
 def solve_map_correction(poses,edges,scans,size,resolution):
@@ -637,6 +788,7 @@ class FloorSlam:
         self.last_stamp = None
         self.last_plan = -math.inf
         self.last_scan_stamp = {}
+        self.last_scan_sample = {}
         self.last_good_stamp=None
         self.good_streak=0
         self.last_place_check=-math.inf
@@ -646,6 +798,47 @@ class FloorSlam:
         self.map_revision=0
         self.correction_guard=None
         self.pending_correction=None
+        self.relocalizing=False
+        self.restored_map=False
+
+    def memory_state(self,planner):
+        fields=('pose','keyframes','flow_keyframes','edges','scans','loop_closures','map_revision')
+        history=('visits','goal_id','completed_goals','last_completed_goal','stalled_goals','last_stall_reason')
+        state={name:getattr(self,name) for name in fields}
+        state['map']={'size':self.map.size,'resolution':self.map.resolution,'origin':self.map.origin,
+                      'logodds':self.map.logodds,'observed':self.map.observed}
+        state['planner']={name:planner[name] if isinstance(planner,dict) else getattr(planner,name) for name in history}
+        if self.previous is not None:
+            gray,pixels,ground,_,yaw=self.previous
+            state['flow_keyframes']=self.flow_keyframes+[{'gray':gray,'pixels':pixels,
+                'ground':ground@rotation(yaw).T,'pose':self.pose.copy(),'keyframe':len(self.keyframes)-1}]
+        return copy.deepcopy(state)
+
+    def restore_memory(self,state):
+        saved=state['map'];self.map=OccupancyMap(saved['size'],saved['resolution'])
+        for name in ('origin','logodds','observed'):setattr(self.map,name,saved[name])
+        for name in ('pose','keyframes','flow_keyframes','edges','scans','loop_closures','map_revision'):
+            setattr(self,name,state[name])
+        for name,value in state['planner'].items():setattr(self.planner,name,value)
+        self.relocalizing=bool(self.keyframes);self.restored_map=True
+        self.status='Saved map loaded; waiting to recognize the current camera view'
+
+    def recognize_saved_map(self,gray,calibration,roll,pitch,yaw):
+        current=self.place(gray,calibration,roll,pitch,yaw)
+        if current is None:return False
+        matches=[]
+        for reference in self.keyframes:
+            if abs(angle(yaw-reference['pose'][2]))>.45:continue
+            result=self.match_place(current,reference)
+            if result is not None:
+                delta,count=result;matches.append((count,reference['pose'][:2]+delta))
+        if not matches:return False
+        matches.sort(key=lambda item:item[0],reverse=True)
+        count,position=matches[0]
+        # Repeated-looking places must not silently relocate the saved map.
+        if any(other>=count*.8 and math.dist(position,candidate)>.25 for other,candidate in matches[1:]):return False
+        self.pose[:2]=position;self.inliers=count;self.relocalizing=False
+        return True
 
     def features(self, gray, calibration, roll, pitch):
         mask = np.zeros_like(gray)
@@ -739,7 +932,12 @@ class FloorSlam:
             if optimizer is not None:
                 optimizer.stop();optimizer=AsyncMapOptimizer();optimizer.start()
             correction_guard=self.correction_guard
-            self.__init__();self.optimizer=optimizer;self.correction_guard=correction_guard
+            if self.keyframes:
+                self.previous=None;self.last_stamp=None;self.last_scan_stamp={};self.last_scan_sample={}
+                self.last_good_stamp=None;self.good_streak=0;self.tracking=False
+                self.relocalizing=True;self.last_place_check=-math.inf;self.pending_correction=None
+            else:self.__init__()
+            self.optimizer=optimizer;self.correction_guard=correction_guard
         if self.pending_correction is not None:
             self.apply_correction(*self.pending_correction)
         if self.optimizer is not None and self.pending_correction is None:self.optimizer.collect(self)
@@ -751,6 +949,12 @@ class FloorSlam:
         self.pose[2] = yaw
         good = False
         self.inliers = 0
+        if self.relocalizing:
+            if not self.recognize_saved_map(gray,calibration,roll,pitch,yaw):
+                self.tracking=False;self.good_streak=0;self.last_stamp=stamp
+                self.status='Saved map retained; waiting for visual relocalization'
+                return
+            good=True
         if self.previous is not None:
             prev_gray, prev_pixels, prev_ground, prev_stamp, prev_yaw = self.previous
             dt = stamp-prev_stamp
@@ -850,19 +1054,39 @@ class FloorSlam:
                 if len(self.keyframes)>32:
                     for key in ['gray','pixels','ground']:self.keyframes[-33].pop(key,None)
         self.keyframes[-1].setdefault('stamp', stamp)
+        self.integrate_ranges(stamp,ranges)
+        if plan and stamp-self.last_plan > 1.:
+            self.planner.plan(self.map, self.pose,stamp); self.last_plan = stamp
+
+    def integrate_ranges(self,stamp,ranges):
+        """Avoid filling scan history with saturated, unchanged idle readings."""
         fresh = {}
         for side, (value, maximum, measurement_stamp) in ranges.items():
             if -.05 <= stamp-measurement_stamp <= .25 and measurement_stamp > self.last_scan_stamp.get(side, -math.inf):
-                fresh[side] = (value, maximum); self.last_scan_stamp[side] = measurement_stamp
+                self.last_scan_stamp[side] = measurement_stamp
+                previous=self.last_scan_sample.get(side)
+                if previous is not None:
+                    pose,old_value,old_maximum,count=previous
+                    same_value=value==old_value or (math.isfinite(value) and math.isfinite(old_value) and abs(value-old_value)<.05)
+                    unchanged=(same_value and maximum==old_maximum and
+                               math.dist(self.pose[:2],pose[:2])<.005 and
+                               abs(angle(self.pose[2]-pose[2]))<.035)
+                    if unchanged and count>=16:continue
+                else:unchanged=False
+                # Sixteen repeats saturate the occupancy evidence, including
+                # clearing a previously occupied cell. Keep the original pose
+                # anchor so gradual movement eventually becomes a new sample.
+                self.last_scan_sample[side]=(pose,old_value,old_maximum,count+1) if unchanged else (self.pose.copy(),value,maximum,1)
+                fresh[side] = (value, maximum)
         if fresh and len(self.scans)<20000:
             self.map.update(self.pose, fresh)
             self.scans.append({'pose': self.pose.copy(), 'ranges': fresh, 'keyframe': len(self.keyframes)-1})
-        if plan and stamp-self.last_plan > 1.:
-            self.planner.plan(self.map, self.pose,stamp); self.last_plan = stamp
 
     def snapshot(self):
         grid = self.map.grid()
         return {'pose': self.pose.tolist(), 'tracking': self.tracking, 'status': self.status,
+                'scan_records':len(self.scans),
+                'restored_map':self.restored_map,'relocalizing':self.relocalizing,
                 'map_revision':self.map_revision,'correction_pending':self.pending_correction is not None,
                 'capacity_reached':len(self.scans)>=20000 or len(self.keyframes)>=300 or not self.map.inside(self.map.cell(self.pose[:2])),
                 'last_good_stamp':self.last_good_stamp,'good_streak':self.good_streak,
@@ -884,21 +1108,35 @@ class PlanningWorker(threading.Thread):
         super().__init__(daemon=True,name='robot-frontiers')
         self.frames=LatestSlot();self.stop_event=threading.Event();self.lock=threading.Lock()
         self.planner=FrontierPlanner();self.epoch=None;self.latest={};self.error=None
+        self.last_progress_sample=None
 
     def run(self):
         seq=0
         while not self.stop_event.is_set():
             seq,item=self.frames.wait_new(seq,.2)
             if item is None:continue
-            occupancy,pose,stamp,epoch=item
-            if epoch!=self.epoch:self.planner=FrontierPlanner();self.epoch=epoch
+            occupancy,pose,stamp,epoch,movement_enabled=item
+            if epoch!=self.epoch:
+                history={name:copy.deepcopy(getattr(self.planner,name)) for name in
+                         ('visits','goal_id','completed_goals','last_completed_goal','stalled_goals','last_stall_reason')}
+                self.planner=FrontierPlanner();self.epoch=epoch
+                for name,value in history.items():setattr(self.planner,name,value)
             try:
-                self.planner.plan(occupancy,pose,stamp)
+                wall_now=time.monotonic()
+                # A paused simulator or lost tracking does not consume the
+                # no-progress interval while no reliable pose is available.
+                if self.last_progress_sample is None or wall_now-self.last_progress_sample>2.:
+                    self.planner.last_progress_time=None
+                self.last_progress_sample=wall_now
+                self.planner.plan(occupancy,pose,stamp,wall_now,movement_enabled)
                 result={'path':self.planner.path,'frontiers':self.planner.frontiers,'goal':self.planner.goal,
                         'planner_state':self.planner.state,'interest':self.planner.interest,
                         'visited_places':len(self.planner.visits),'visits':dict(self.planner.visits),
                         'goal_id':self.planner.goal_id,'completed_goals':self.planner.completed_goals,
+                        'last_completed_goal':self.planner.last_completed_goal,
                         'goal_distance_m':self.planner.goal_distance,'route_revision':self.planner.route_revision,
+                        'stall_seconds':self.planner.stall_seconds,'stalled_goals':self.planner.stalled_goals,
+                        'last_stall_reason':self.planner.last_stall_reason,
                         'plan_stamp':stamp,'plan_finished':time.monotonic(),'epoch':epoch}
                 with self.lock:self.latest=result;self.error=None
             except Exception:
@@ -916,16 +1154,42 @@ class PlanningWorker(threading.Thread):
 
 
 class SlamWorker(threading.Thread):
-    def __init__(self, frames):
+    def __init__(self, frames, memory_path=None, restore=True):
         super().__init__(daemon=True, name='robot-slam')
         self.frames = frames
         self.engine = FloorSlam()
+        self.memory_path=Path(memory_path) if memory_path is not None else None
+        self.memory_status='No saved map yet'
+        if restore and self.memory_path is not None and self.memory_path.exists():
+            from .robot_memory import read_memory
+            self.engine.restore_memory(read_memory(self.memory_path))
+            self.memory_status='Saved map loaded; visual relocalization required'
         self.lock = threading.RLock()
         self.stop_event = threading.Event()
         self.error = None
         self.latest = self.engine.snapshot()
         self.finished = -math.inf
-        self.planning=PlanningWorker();self.epoch=0;self.last_map_revision=0;self.processed=0;self.last_plan_request=-math.inf
+        self.planning=PlanningWorker();self.epoch=0;self.last_map_revision=self.engine.map_revision;self.processed=0;self.last_plan_request=-math.inf
+        self.movement_enabled=False
+        self.planning.planner=self.engine.planner;self.planning.epoch=0
+        self.initial_planner_memory=self.engine.memory_state(self.engine.planner)['planner']
+        self.memory_writer=ThreadPoolExecutor(max_workers=1,thread_name_prefix='slam-memory') if self.memory_path else None
+        self.memory_job=None;self.last_memory_save=-math.inf
+        self.memory_save_requested=threading.Event()
+
+    def checkpoint(self,final=False):
+        if self.memory_writer is None:return
+        from .robot_memory import write_memory
+        if self.memory_job is not None:
+            if not self.memory_job.done() and not final:return
+            try:self.memory_job.result()
+            except Exception as exc:self.memory_status='Map save failed: '+str(exc)
+        # Called by the tracking thread after its update, so the copied engine
+        # and published planner history cannot be mutated during serialization.
+        state=self.engine.memory_state(self.planning.snapshot() or self.initial_planner_memory)
+        self.memory_job=self.memory_writer.submit(write_memory,self.memory_path,state)
+        self.last_memory_save=time.monotonic();self.memory_save_requested.clear()
+        self.memory_status='Map checkpoint enabled: '+str(self.memory_path)
 
     def run(self):
         seq = 0
@@ -953,13 +1217,19 @@ class SlamWorker(threading.Thread):
                     self.last_plan_request=item[1]
                     occupancy=OccupancyMap(self.engine.map.size,self.engine.map.resolution)
                     occupancy.logodds=self.engine.map.logodds.copy();occupancy.observed=self.engine.map.observed.copy()
-                    self.planning.frames.put((occupancy,self.engine.pose.copy(),item[1],self.epoch))
+                    self.planning.frames.put((occupancy,self.engine.pose.copy(),item[1],self.epoch,self.movement_enabled))
+                if self.memory_path and (self.memory_save_requested.is_set() or time.monotonic()-self.last_memory_save>=30.):
+                    self.checkpoint()
         except Exception:
             import traceback
             self.error = traceback.format_exc()
         finally:
             self.engine.optimizer.stop()
             self.planning.stop();self.planning.join(timeout=2.)
+            if self.memory_writer is not None:
+                self.checkpoint(final=True)
+                self.memory_writer.shutdown(wait=True)
+                self.memory_job.result()
 
     def snapshot(self):
         with self.lock:
@@ -978,11 +1248,13 @@ class SlamWorker(threading.Thread):
         else:
             result['plan_age_s']=math.inf;result['plan_ready']=False
         if self.planning.error:result['interest']='Planner error; movement stopped'
+        result['memory_status']=self.memory_status
         return result
 
     def save(self, directory):
         # Export an immutable snapshot so the running mapping thread can continue.
         import yaml
+        self.memory_save_requested.set()
         directory = Path(directory); directory.mkdir(parents=True, exist_ok=True)
         s = self.snapshot(); grid = s.pop('grid')
         image = np.full(grid.shape, 205, np.uint8); image[grid == 0] = 254; image[grid == 100] = 0

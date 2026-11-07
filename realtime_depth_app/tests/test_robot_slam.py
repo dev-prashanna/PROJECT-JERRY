@@ -1,10 +1,203 @@
 import math
+from pathlib import Path
 import cv2
 import numpy as np
+from scipy import ndimage
 
 from realtime_depth_app.src.robot_slam import (Calibration, OccupancyMap, FrontierPlanner, CuriosityPolicy,
                             FloorSlam, SlamWorker,consensus_translation, rotation,route_target,PathFollower,localization_health,simplify_route,segment_clear)
 from realtime_depth_app.src.robot_avoidance import Decision, RangeReading, SIDES
+
+
+def test_idle_sensor_repeats_leave_capacity_for_a_later_mapping_scan():
+    slam=FloorSlam()
+    for tick in range(21000):
+        stamp=tick*.1
+        slam.integrate_ranges(stamp,{'front':(1.,4.,stamp)})
+    assert len(slam.scans)==16
+    assert not slam.snapshot()['capacity_reached']
+    observed=slam.map.observed.sum()
+    slam.pose[2]=math.pi/2
+    slam.integrate_ranges(2101.,{'front':(1.,4.,2101.)})
+    assert len(slam.scans)==17
+    assert slam.map.observed.sum()>observed
+    # A moved obstacle must also update the map while the robot stays still.
+    slam.integrate_ranges(2102.,{'front':(.4,4.,2102.)})
+    assert len(slam.scans)==18
+    slam.pose[0]+=.03
+    slam.integrate_ranges(2103.,{'front':(.4,4.,2103.)})
+    assert len(slam.scans)==19
+
+
+def test_exploration_holds_when_map_has_reached_capacity():
+    snapshot={'capacity_reached':True,'pose':[0.,0.,0.],
+              'goal':None,'path':[],'planner_state':'NO_REACHABLE_FRONTIER'}
+    policy=CuriosityPolicy()
+    readings={s:RangeReading(1.,0.,0.) for s in SIDES}
+    for now in [0.,1.,30.]:
+        command=policy.decide(snapshot,readings,Decision(.08,0.,'ADVANCE','clear'),True,now)
+        assert command.state=='STOP' and command.linear==command.angular==0.
+        assert 'capacity' in command.reason
+
+
+def test_mapping_scan_keeps_escape_direction_and_stops_if_it_cannot_find_a_goal():
+    snapshot={'pose':[0.,0.,0.],'goal':None,'path':[],
+              'planner_state':'NO_REACHABLE_FRONTIER'}
+    policy=CuriosityPolicy();readings={s:RangeReading(1.,0.,0.) for s in SIDES}
+    clear=Decision(.08,0.,'ADVANCE','clear')
+    assert policy.decide(snapshot,readings,clear,True,0.).angular>0
+    escape=Decision(0.,-.65,'TURN','Avoiding obstacle')
+    assert policy.decide(snapshot,readings,escape,True,1.)==escape
+    snapshot['pose'][2]=-.3
+    assert policy.decide(snapshot,readings,clear,True,2.).angular<0
+    held=policy.decide(snapshot,readings,clear,True,46.)
+    assert held.state=='STOP' and held.linear==held.angular==0.
+
+
+def test_corner_scan_turns_into_open_side_instead_of_waiting_for_both_sides():
+    snapshot={'pose':[0.,0.,2.45],'goal':None,'path':[],
+              'planner_state':'NO_REACHABLE_FRONTIER'}
+    readings={side:RangeReading(distance,0.,0.) for side,distance in
+              [('front',.52),('left',.14),('right',3.2),('rear',.17)]}
+    policy=CuriosityPolicy()
+    command=policy.decide(snapshot,readings,Decision(.03,-.35,'ADVANCE','Side caution'),True,0.)
+    assert command.state=='LOOK_AROUND' and command.linear==0. and command.angular<0.
+    readings['right']=RangeReading(.13,0.,0.)
+    held=policy.decide(snapshot,readings,Decision(.03,0.,'ADVANCE','clear'),True,1.)
+    assert held.state=='STOP' and held.linear==held.angular==0.
+
+
+def test_no_goal_corner_can_gain_pivot_clearance_using_measured_short_corridor():
+    with np.load(Path(__file__).parent/'fixtures/corner_escape.npz') as captured:
+        snapshot={key:captured[key].copy() for key in ('grid','origin','pose')}
+        snapshot.update(resolution=float(captured['resolution']),goal=None,path=[],
+                        planner_state='NO_REACHABLE_FRONTIER')
+    readings={side:RangeReading(distance,0.,0.) for side,distance in
+              [('front',.62),('left',.185),('right',1.12),('rear',.115)]}
+    policy=CuriosityPolicy();safe=Decision(.04,0.,'ADVANCE','clear')
+    command=policy.decide(snapshot,readings,safe,True,0.)
+    assert command.state=='GAIN_CLEARANCE' and 0<command.linear<=.025 and command.angular==0.
+    assert policy.decide(snapshot,readings,safe,True,4.1).linear==0.
+    snapshot['grid'][:]=100
+    blocked=CuriosityPolicy().decide(snapshot,readings,safe,True,0.)
+    assert blocked.state=='STOP' and blocked.linear==blocked.angular==0.
+    snapshot['grid'][:]=-1
+    local=CuriosityPolicy().decide(snapshot,readings,safe,True,0.)
+    assert local.state=='GAIN_CLEARANCE' and 0<local.linear<=.02
+    readings['front']=RangeReading(.62,2.,2.)
+    stale=CuriosityPolicy().decide(snapshot,readings,safe,True,0.)
+    assert stale.state=='STOP' and stale.linear==stale.angular==0.
+
+
+def test_small_corner_steps_update_mapping_before_the_recovery_corridor_runs_out():
+    with np.load(Path(__file__).parent/'fixtures/corner_escape.npz') as captured:
+        engine=FloorSlam();engine.pose=captured['pose'].copy()
+        engine.map=OccupancyMap(captured['grid'].shape[0],float(captured['resolution']))
+        engine.map.origin=captured['origin'].copy()
+        engine.map.observed=captured['grid']>=0
+        engine.map.logodds=np.where(captured['grid']==100,3.,-3.)
+    initial=engine.pose.copy();policy=CuriosityPolicy()
+    for tick in range(100):
+        distance=math.dist(engine.pose[:2],initial[:2])
+        # Stationary front/rear surfaces as the robot moves straight between them.
+        values={'front':.62-distance,'rear':.115+distance,'left':.185,'right':1.12}
+        readings={side:RangeReading(value,0.,0.) for side,value in values.items()}
+        engine.integrate_ranges(tick*.05,{side:(value,4.,tick*.05) for side,value in values.items()})
+        snapshot=engine.snapshot();snapshot.update(goal=None,path=[],planner_state='NO_REACHABLE_FRONTIER')
+        command=policy.decide(snapshot,readings,Decision(.04,0.,'ADVANCE','clear'),True,tick*.05)
+        engine.pose[:2]+=.05*command.linear*np.array([math.cos(engine.pose[2]),math.sin(engine.pose[2])])
+        if command.state=='LOOK_AROUND':break
+    assert math.dist(engine.pose[:2],initial[:2])>.02
+    assert command.state=='LOOK_AROUND' and command.angular<0.
+
+
+def test_forward_caution_does_not_reverse_a_clear_in_place_route_alignment():
+    snapshot={'pose':[0.,0.,.8],'goal':[-.3,.2],
+              'path':[[0.,0.],[-.3,.2]],'planner_state':'EXPLORING'}
+    readings={s:RangeReading(.5,0.,0.) for s in SIDES}
+    readings['front']=RangeReading(.3,0.,0.)
+    caution=Decision(0.,-.65,'TURN','FRONT ultrasound caution')
+    command=CuriosityPolicy().decide(snapshot,readings,caution,True,0.)
+    assert command.state=='ALIGN' and command.linear==0. and command.angular>0.
+    # Emergency clearance and insufficient pivot room still hold the robot.
+    emergency=Decision(0.,0.,'STOP','FRONT emergency clearance < 0.18 m')
+    held=CuriosityPolicy().decide(snapshot,readings,emergency,True,0.)
+    assert held.state in ['STOP','STARTLED'] and held.linear==held.angular==0.
+    readings['rear']=RangeReading(.15,0.,0.)
+    blocked=CuriosityPolicy().decide(snapshot,readings,caution,True,0.)
+    assert blocked.state!='ALIGN' and blocked.linear==0.
+
+
+def test_rear_alignment_recovery_requires_known_free_space_and_is_bounded():
+    occupancy=OccupancyMap(size=60)
+    occupancy.observed[:]=True;occupancy.logodds[:]=-3.
+    snapshot={'pose':[0.,0.,0.],'goal':[-1.,0.],
+              'path':[[0.,0.],[-1.,0.]],'planner_state':'EXPLORING',
+              'grid':occupancy.grid(),'origin':occupancy.origin,'resolution':occupancy.resolution}
+    readings={s:RangeReading(.6,0.,0.) for s in SIDES}
+    readings['rear']=RangeReading(.17,0.,0.)
+    safe=Decision(.065,0.,'ADVANCE','clear')
+    policy=CuriosityPolicy()
+    command=policy.decide(snapshot,readings,safe,True,0.)
+    assert command.state=='GAIN_CLEARANCE' and 0<command.linear<=.025 and command.angular==0.
+    assert policy.decide(snapshot,readings,safe,True,4.1).linear==0.
+    snapshot['pose'][0]=.11
+    assert policy.decide(snapshot,readings,safe,True,1.).linear==0.
+    snapshot['pose'][0]=0.
+    snapshot['grid'][:]=-1
+    assert CuriosityPolicy().decide(snapshot,readings,safe,True,0.).linear==0.
+    snapshot['grid']=occupancy.grid()
+    readings['front']=RangeReading(.3,0.,0.)
+    assert CuriosityPolicy().decide(snapshot,readings,safe,True,0.).linear==0.
+
+
+def test_measured_corner_stall_recovers_without_replacing_destination():
+    # Captured ROS map, estimated pose and retained route from the live stall.
+    with np.load(Path(__file__).parent/'fixtures/planning_corner.npz') as captured:
+        pose=captured['pose'].copy()
+        initial=pose.copy()
+        goal=captured['goal'].tolist()
+        occupancy=OccupancyMap(captured['grid'].shape[0],float(captured['resolution']))
+        occupancy.origin=captured['origin'].copy()
+        occupancy.observed=captured['grid']>=0
+        occupancy.logodds=np.where(captured['grid']==100,3.,-3.)
+        navigation={'grid':captured['grid'].copy(),'origin':occupancy.origin,
+                    'resolution':occupancy.resolution}
+        planner=FrontierPlanner()
+        planner.goal=goal.copy();planner.goal_id=3
+        planner.path=captured['path'].tolist()
+    readings={s:RangeReading(1.,0.,0.) for s in SIDES}
+    safety=Decision(.065,0.,'ADVANCE','clear')
+    first=planner.navigator.command(pose,planner.path,goal,safety,navigation)
+    assert first.state=='EXPLORE' and 0<first.linear<.03
+    grid=navigation['grid'];radius=math.ceil(.13/occupancy.resolution)
+    yy,xx=np.ogrid[-radius:radius+1,-radius:radius+1]
+    clear=(grid==0)&~ndimage.binary_dilation(grid==100,structure=xx*xx+yy*yy<=radius*radius)
+    clear &= ndimage.distance_transform_edt(grid==0)*occupancy.resolution>=.11
+    for tick in range(800):
+        if tick%10==0:planner.plan(occupancy,pose,tick*.05)
+        planner.navigation=navigation
+        decision=planner.command(pose,readings,safety,True)
+        previous=pose.copy()
+        pose[:2]+=.05*decision.linear*np.array([math.cos(pose[2]),math.sin(pose[2])])
+        pose[2]+=.05*decision.angular
+        assert segment_clear(previous[:2],pose[:2],clear,occupancy.origin,occupancy.resolution)
+        assert planner.goal==goal and planner.goal_id==3
+        if planner.completed_goals:break
+    assert planner.route_revision>0
+    assert planner.completed_goals==1
+    assert math.dist(initial[:2],pose[:2])>1.
+    assert math.dist(pose[:2],goal)<=.12
+
+
+def test_short_corner_recovery_still_rejects_unknown_space():
+    with np.load(Path(__file__).parent/'fixtures/planning_corner.npz') as captured:
+        navigation={'grid':np.full_like(captured['grid'],-1),
+                    'origin':captured['origin'],'resolution':float(captured['resolution'])}
+        decision=PathFollower().command(captured['pose'],captured['path'],captured['goal'],
+                                       Decision(.065,0.,'ADVANCE','clear'),navigation)
+    assert decision.state=='PLANNING'
+    assert decision.linear==decision.angular==0.
 
 
 def test_floor_projection_recovers_metric_points_with_tilt():
@@ -135,7 +328,7 @@ def test_frontier_target_habituates_and_unproductive_target_expires():
     assert math.dist(first,another.goal)>.2
 
 
-def test_frontier_goal_remains_locked_even_after_long_delays():
+def test_monitor_mode_preserves_destination_even_after_long_delays():
     m=OccupancyMap(size=100)
     m.observed[35:65,30:70]=True;m.logodds[35:65,30:70]=-3
     p=FrontierPlanner();p.plan(m,[0.,0.,0.],0.)
@@ -146,6 +339,55 @@ def test_frontier_goal_remains_locked_even_after_long_delays():
     assert p.goal==goal
     p.plan(m,[.02,.01,0.],300.)
     assert p.goal==goal and p.completed_goals==0
+
+
+def test_stationary_robot_skips_goal_after_one_wall_minute_but_not_before():
+    m=OccupancyMap(size=100)
+    m.observed[35:65,30:70]=True;m.logodds[35:65,30:70]=-3
+    p=FrontierPlanner();pose=[0.,0.,0.]
+    p.plan(m,pose,0.,100.,True)
+    first=list(p.goal);identity=p.goal_id
+    # Heading changes and centimetre-scale estimate noise are not travel.
+    for second in [10.,30.,59.9]:
+        p.plan(m,[.005,-.005,second*.1],second*10,100.+second,True)
+        assert p.goal==first and p.goal_id==identity
+    p.plan(m,pose,600.,160.,True)
+    assert p.goal is not None and math.dist(p.goal,first)>.35
+    assert p.goal_id==identity+1 and p.stalled_goals==1 and p.completed_goals==0
+    assert p.path and '60 s' in p.last_stall_reason
+
+
+def test_real_progress_resets_stall_timer_and_monitor_time_does_not_count():
+    m=OccupancyMap(size=100)
+    m.observed[35:65,30:70]=True;m.logodds[35:65,30:70]=-3
+    p=FrontierPlanner();pose=np.zeros(3)
+    p.plan(m,pose,0.,0.,True);goal=list(p.goal)
+    direction=np.array(goal)/math.dist([0.,0.],goal)
+    pose[:2]=direction*.06
+    p.plan(m,pose,59.,59.,True)
+    p.plan(m,pose,100.,100.,True)
+    assert p.goal==goal and p.stall_seconds==41.
+    p.plan(m,pose,500.,500.,False)
+    p.plan(m,pose,1000.,1000.,True)
+    p.plan(m,pose,1059.,1059.,True)
+    assert p.goal==goal and p.stalled_goals==0 and p.stall_seconds==59.
+    p.plan(m,pose,1060.,1060.,True)
+    assert p.goal!=goal and p.stalled_goals==1
+
+
+def test_stalled_goal_is_abandoned_even_when_local_map_is_blocked():
+    m=OccupancyMap(size=100)
+    m.observed[35:65,30:70]=True;m.logodds[35:65,30:70]=-3
+    p=FrontierPlanner();pose=[0.,0.,0.]
+    p.plan(m,pose,0.,0.,True);goal=list(p.goal)
+    m.observed[48:53,48:53]=False;m.logodds[48:53,48:53]=0.
+    p.plan(m,pose,59.,59.,True)
+    assert p.goal==goal and p.state=='GOAL_HELD'
+    p.plan(m,pose,60.,60.,True)
+    assert p.goal is None and not p.path and p.stalled_goals==1
+    m.observed[48:53,48:53]=True;m.logodds[48:53,48:53]=-3.
+    p.plan(m,pose,61.,61.,True)
+    assert p.goal is not None and math.dist(p.goal,goal)>.35
 
 
 def test_temporary_local_map_loss_and_blocked_goal_do_not_replace_destination():

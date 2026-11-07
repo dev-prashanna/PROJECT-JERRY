@@ -111,7 +111,7 @@ class Navigation(RobotNode):
             self.active = True
             self.curiosity.reset()
         started = time.monotonic()
-        progress = MissionProgress(started)
+        progress = MissionProgress(started,timeout=65.)
         result = Mission.Result(status='FAILED',reason='Navigation interrupted')
         try:
             while time.monotonic()-started < min(goal.maximum_wall_s,300.):

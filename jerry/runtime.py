@@ -46,7 +46,7 @@ def main():
         validate_config(config)
         frames,results,slam_frames = LatestSlot(),LatestSlot(),LatestSlot()
         worker = DepthWorker(frames,results,config)
-        slam = SlamWorker(slam_frames)
+        slam = SlamWorker(slam_frames,memory_path=Path(__file__).resolve().parents[1]/'simulation/artifacts/jerry/integrated-slam-memory.npz')
         detector_frames = LatestSlot() if not args.no_detection else None
         detector = DetectionProcessWorker(detector_frames,Path('models/yolo/yolo11n.pt'),2.,.30) if detector_frames else None
         def factory():

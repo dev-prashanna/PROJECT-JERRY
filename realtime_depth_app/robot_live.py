@@ -185,13 +185,15 @@ class RobotNode(Node):
                     ranges={s:(v,maximum,ts) for s,(v,recv,ts,minimum,maximum) in self.sonars.items() if now-recv<.8}
                     self.slam_frames.put((self.frame.bgr,stamp,self.calibration,(*sample[1:4],attitude['ready'] and sample[4]),ranges))
                     self.last_slam_frame=self.frame.id
+            perception_ready=not self.worker.error and (self.detector is None or self.detector.processed>0)
+            if self.slam:self.slam.movement_enabled=self.active and perception_ready
             slam=self.slam.snapshot() if self.slam else None
             if mode=='explore':
-                ready=bool(slam and slam['ready'] and attitude['ready'] and self.sim_time is not None and slam['stamp'] is not None and -.1<=self.sim_time-slam['stamp']<.45)
+                ready=bool(perception_ready and slam and slam['ready'] and attitude['ready'] and self.sim_time is not None and slam['stamp'] is not None and -.1<=self.sim_time-slam['stamp']<.45)
                 if slam:
                     slam.update(localization_health(slam,self.sim_time,attitude['ready'],camera_age,now-self.clock_received))
                 d=self.curiosity.decide(slam,rs,d,ready,self.sim_time or 0.)
-                if ready and slam and not slam.get('plan_ready',False):
+                if ready and slam and not slam.get('capacity_reached',False) and not slam.get('plan_ready',False):
                     d=Decision(0.,0.,'PLANNING','Waiting for a fresh route through the remembered map')
             if slam:self.mapping_status={'x_m':slam['pose'][0],'y_m':slam['pose'][1],'vo_inliers':slam['inliers'],'observed_m2':slam['observed_m2'],'loop_closures':slam['loop_closures']}
             if slam and slam['stamp'] is not None and now-self.last_map_publish>.5:
@@ -220,7 +222,7 @@ class RobotNode(Node):
             status['command_time_s']=now
             status['target_linear_m_s']=d.linear;status['target_yaw_rad_s']=d.angular
             if detection:status['objects']={'status':detection['status'],'age_s':detection['age_s'],'frames':detection['frames'],'count':len(objects.boxes) if objects else 0}
-            if slam:status['slam']={k:slam.get(k) for k in ['pose','ready','status','inliers','good_streak','trusted_pose_age_s','processing_ms','keyframes','loop_closures','observed_m2','free_m2','goal','goal_id','completed_goals','goal_distance_m','route_revision','planner_state','interest','visited_places','age_s','revision','plan_ready','plan_age_s']}
+            if slam:status['slam']={k:slam.get(k) for k in ['pose','ready','status','capacity_reached','scan_records','restored_map','relocalizing','memory_status','inliers','good_streak','trusted_pose_age_s','processing_ms','keyframes','loop_closures','observed_m2','free_m2','goal','goal_id','completed_goals','stall_seconds','stalled_goals','last_stall_reason','goal_distance_m','route_revision','planner_state','interest','visited_places','age_s','revision','plan_ready','plan_age_s']}
             msg=String();msg.data=json.dumps(status);self.status_pub.publish(msg);self.history.append(status)
     def publish_map(self,s):
         import math
@@ -262,7 +264,7 @@ def spin_node(node):
         node.spin_error=traceback.format_exc();node.arm(False);print(node.spin_error,file=sys.stderr,flush=True)
 
 def main():
-    ap=argparse.ArgumentParser(description=__doc__);ap.add_argument('--auto',action='store_true');ap.add_argument('--mode',choices=['explore','avoid'],default='explore');ap.add_argument('--headless',action='store_true');ap.add_argument('--duration',type=float,default=0);ap.add_argument('--output',type=Path,default=Path(__file__).resolve().parent/'robot_outputs');ap.add_argument('--input-size',type=int,default=392);ap.add_argument('--device',default='auto');ap.add_argument('--no-detection',action='store_true');ap.add_argument('--detector-model',type=Path,default=Path(__file__).resolve().parents[1]/'models/yolo/yolo11n.pt');ap.add_argument('--detector-fps',type=float,default=4.);ap.add_argument('--detector-confidence',type=float,default=.30);ap.add_argument('--detector-device',default='auto');args=ap.parse_args()
+    ap=argparse.ArgumentParser(description=__doc__);ap.add_argument('--auto',action='store_true');ap.add_argument('--mode',choices=['explore','avoid'],default='explore');ap.add_argument('--headless',action='store_true');ap.add_argument('--duration',type=float,default=0);ap.add_argument('--output',type=Path,default=Path(__file__).resolve().parent/'robot_outputs');ap.add_argument('--input-size',type=int,default=392);ap.add_argument('--device',default='auto');ap.add_argument('--no-detection',action='store_true');ap.add_argument('--detector-model',type=Path,default=Path(__file__).resolve().parents[1]/'models/yolo/yolo11n.pt');ap.add_argument('--detector-fps',type=float,default=4.);ap.add_argument('--detector-confidence',type=float,default=.30);ap.add_argument('--detector-device',default='auto');ap.add_argument('--map-memory',type=Path,default=Path(__file__).resolve().parents[1]/'simulation/artifacts/jerry/slam-memory.npz');ap.add_argument('--fresh-map',action='store_true');args=ap.parse_args()
     if not np.isfinite(args.detector_fps) or args.detector_fps<=0:ap.error('--detector-fps must be positive')
     if not 0.<args.detector_confidence<1.:ap.error('--detector-confidence must be between 0 and 1')
     # One live dashboard/controller per ROS domain: avoid duplicate command/service owners.
@@ -282,7 +284,7 @@ def main():
     cfg.depth.smoothing.enabled=False
     validate_config(cfg)
     frames=LatestSlot();results=LatestSlot();worker=DepthWorker(frames,results,cfg)
-    slam_frames=LatestSlot();slam=SlamWorker(slam_frames)
+    slam_frames=LatestSlot();slam=SlamWorker(slam_frames,memory_path=args.map_memory,restore=not args.fresh_map)
     detector_frames=LatestSlot() if not args.no_detection else None
     detector=DetectionWorker(detector_frames,args.detector_model,args.detector_fps,args.detector_confidence,args.detector_device,lambda:not worker.busy.is_set()) if detector_frames is not None else None
     rclpy.init();node=RobotNode(frames,results,worker,args.auto,args.mode,slam,slam_frames,detector,detector_frames);spin=threading.Thread(target=lambda:spin_node(node),daemon=True);spin.start();worker.start();slam.start()
