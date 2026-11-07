@@ -8,6 +8,8 @@ Right now the "brain" is a laptop or mini-PC sitting on top of a small ESP32-dri
 
 Complete hardware, firmware, perception, SLAM, exploration and interface details: [JERRY_DESCRIPTION.md](JERRY_DESCRIPTION.md).
 
+Next development steps: [technical roadmap](docs/JERRY_TECHNICAL_ROADMAP.md) covering coordinated recovery, footprint-aware navigation, repeatable benchmarks, dashboard controls, durable maps, object-directed navigation and emotional expression, with delivery phases and acceptance gates.
+
 ---
 
 ## Control Jerry from Codex

@@ -8,6 +8,8 @@
 
 ### Reading guide
 
+For the next implementation sequence, current reliability gaps and measurable release gates, see the [technical roadmap](docs/JERRY_TECHNICAL_ROADMAP.md). It incorporates the 60-second stalled-goal policy, persistent maps, coordinated recovery, dashboard migration, object approach and emotional expression. Proposed roadmap capabilities remain gated until implemented and validated.
+
 * [System decisions and communication diagram](#2-main-architectural-decisions)
 * [Processes, packages, and reuse map](#4-processes-ownership-and-failure-isolation)
 * [Messages, actions, time, and transforms](#6-communication-contracts)
@@ -545,7 +547,7 @@ score = w_information * estimated_visible_unknown_area
 
 The frontier planner operates without a Codex call at each decision. Codex chooses task semantics and describes results; deterministic code chooses collision-checked paths and enforces budgets. Candidate information gain is an estimate from the observed map, not access to world geometry.
 
-Commit a stable frontier `goal_id`; keep it during transient observation/replanning. Initially confirm arrival within 0.12 m for 0.5 s of active simulation time. Terminate a persistently unreachable exploration subgoal after a bounded policy, initially three recovery attempts or 20 active seconds without progress, mark it deferred, and record why before selecting another. Never silently substitute another destination for an explicit user `navigate_to` task.
+Commit a stable frontier `goal_id`; keep it during transient observation/replanning. Initially confirm arrival within 0.12 m for 0.5 s of active simulation time. Replace an exploration subgoal after 60 wall-clock seconds without at least 5 cm of measured approach progress during active, trusted navigation; mark its 35 cm neighborhood deferred for five minutes and record the transition reason. Monitor time, perception warm-up, pauses and tracking outages do not consume that interval. Individual recovery attempts may stop earlier when their budgets expire; goal replacement never overrides an emergency stop or the parent mission's limits. When no destination exists, use the bounded no-goal recovery policy from the [technical roadmap](docs/JERRY_TECHNICAL_ROADMAP.md). Never silently substitute another destination for an explicit user `navigate_to` task.
 
 Mission bounds include active simulation time, wall deadline, travel distance, recovery attempts, and allowed region. A first demonstration can use a 120 s active-time mission with a 300 s wall deadline. Prolonged simulator pause expires the mission rather than holding resources forever. When no reachable frontiers remain, return `NO_REACHABLE_FRONTIERS`; do not claim the whole world was mapped.
 
