@@ -4,6 +4,10 @@
 
 The model includes one ESP32-CAM, four ultrasonic modules (front/rear and requested left/right additions), four driven wheels, and a lower central holder containing two 3.7 V Li-ion cells. The cell envelopes provisionally assume 18650s. Outer dimensions are approximately 170 × 160 × 140 mm, with 60 mm wheels. Visual meshes preserve the CAD detail and component colors. Collision shapes, masses, motor behavior and sensor optics are estimates that need hardware calibration; this is not an exact digital twin.
 
+## Codex MCP integration
+
+Use [Jerry MCP](../docs/JERRY_MCP.md) to let Codex control the simulation through validated tools. `simulation/run_robot_mcp.sh` starts the stdio server; its `start_simulation` tool starts the protected runtime disarmed. `simulation/run_jerry.sh --no-console` runs that simulator independently. This path defaults to ROS domain **87** and Gazebo partition **jerry_integrated**, with independent executive, memory, supervisor and model processes. The legacy dashboard below keeps domain 86 and its existing command path.
+
 ## Launch
 
 For the integrated Gazebo, live depth, SLAM map and autonomous exploration app:

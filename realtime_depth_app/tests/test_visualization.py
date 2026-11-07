@@ -3,9 +3,9 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from src.config import AppConfig
-from src.distance_estimator import DistanceEstimator, Measurement
-from src.visualization import (
+from realtime_depth_app.src.config import AppConfig
+from realtime_depth_app.src.distance_estimator import DistanceEstimator, Measurement
+from realtime_depth_app.src.visualization import (
     CMAP_ORDER,
     Renderer,
     colorize,

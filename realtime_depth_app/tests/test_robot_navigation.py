@@ -1,7 +1,7 @@
 import math
 import numpy as np
-from src.robot_attitude import AttitudeFilter,wrap
-from src.robot_avoidance import RoamingPolicy,RangeReading,analyze_depth,SIDES
+from realtime_depth_app.src.robot_attitude import AttitudeFilter,wrap
+from realtime_depth_app.src.robot_avoidance import RoamingPolicy,RangeReading,analyze_depth,SIDES
 
 def rotation(roll,pitch,yaw):
  r,p,y=roll,pitch,yaw
@@ -57,7 +57,7 @@ def test_dashboard_fails_closed_if_control_thread_stops_with_old_advance_state()
  import threading,time
  from types import SimpleNamespace
  from robot_live import RobotNode
- from src.robot_avoidance import Decision
+ from realtime_depth_app.src.robot_avoidance import Decision
  sent=[];now=time.monotonic()
  fake=SimpleNamespace(lock=threading.RLock(),frame=SimpleNamespace(received=now-10),prediction=SimpleNamespace(packet=SimpleNamespace(received=now-10)),clock_received=now-10,readings=lambda _: {},decision=Decision(.08,.1,'ADVANCE','old command'),active=True,roaming=SimpleNamespace(reset=lambda:None),policy=SimpleNamespace(reset=lambda:None),command_pub=SimpleNamespace(publish=sent.append))
  _,_,_,decision,active=RobotNode.snapshot(fake)
@@ -65,7 +65,7 @@ def test_dashboard_fails_closed_if_control_thread_stops_with_old_advance_state()
  assert len(sent)==1 and sent[0].linear.x==0 and sent[0].angular.z==0
 
 def test_flat_floor_visual_translation_uses_geometry_not_commands():
- from src.robot_mapping import GroundVisualOdometry
+ from realtime_depth_app.src.robot_mapping import GroundVisualOdometry
  vo=GroundVisualOdometry();vo.k=(461.,461.,320.,240.)
  world=np.array([[x,y,0.] for x in np.linspace(.25,1.,10) for y in np.linspace(-.15,.15,6)])
  a0=(0.,0.,.1);a1=(.01,-.01,.14);shift=np.array([.025,-.004])
@@ -77,7 +77,7 @@ def test_flat_floor_visual_translation_uses_geometry_not_commands():
  assert count>=6 and np.allclose(delta,shift,atol=1e-6)
 
 def test_range_cones_build_unknown_free_occupied_cells_and_frontiers():
- from src.robot_mapping import ExplorationMap
+ from realtime_depth_app.src.robot_mapping import ExplorationMap
  m=ExplorationMap()
  for _ in range(4):
   for side in SIDES:m.observe((0,0,0),side,1.)

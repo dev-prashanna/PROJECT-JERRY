@@ -1,0 +1,6 @@
+string request_id
+string text
+---
+bool accepted
+string text
+string[] evidence_ids

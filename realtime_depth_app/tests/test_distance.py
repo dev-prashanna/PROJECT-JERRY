@@ -3,9 +3,9 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from src.calibration import Sample, fit_profile
-from src.config import AppConfig
-from src.distance_estimator import DistanceEstimator, PointStore, sample_region
+from realtime_depth_app.src.calibration import Sample, fit_profile
+from realtime_depth_app.src.config import AppConfig
+from realtime_depth_app.src.distance_estimator import DistanceEstimator, PointStore, sample_region
 
 
 def test_sample_region_median_ignores_nan():

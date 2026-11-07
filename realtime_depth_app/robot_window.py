@@ -202,7 +202,7 @@ class RobotWindow(QtWidgets.QMainWindow):
             label.setPixmap(QtGui.QPixmap.fromImage(q).scaled(label.size(), QtCore.Qt.KeepAspectRatio, QtCore.Qt.FastTransformation))
 
     def display_objects(self,frame):
-        from vbmd_depth_backend.robot_detection import annotate_objects
+        from realtime_depth_app.src.robot_detection import annotate_objects
         detector=getattr(self.node,'detector',None)
         if detector is None:
             self.objects_caption.setText('Object detection disabled')

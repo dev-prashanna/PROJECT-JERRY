@@ -3,8 +3,8 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from src.anchor import AnchorError, ArucoAnchor
-from src.geometry import CameraIntrinsics
+from realtime_depth_app.src.anchor import AnchorError, ArucoAnchor
+from realtime_depth_app.src.geometry import CameraIntrinsics
 
 
 def make_intrinsics() -> CameraIntrinsics:

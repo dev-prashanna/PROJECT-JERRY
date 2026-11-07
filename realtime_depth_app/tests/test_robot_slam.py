@@ -2,9 +2,9 @@ import math
 import cv2
 import numpy as np
 
-from src.robot_slam import (Calibration, OccupancyMap, FrontierPlanner, CuriosityPolicy,
+from realtime_depth_app.src.robot_slam import (Calibration, OccupancyMap, FrontierPlanner, CuriosityPolicy,
                             FloorSlam, SlamWorker,consensus_translation, rotation,route_target,PathFollower,localization_health,simplify_route,segment_clear)
-from src.robot_avoidance import Decision, RangeReading, SIDES
+from realtime_depth_app.src.robot_avoidance import Decision, RangeReading, SIDES
 
 
 def test_floor_projection_recovers_metric_points_with_tilt():
@@ -27,7 +27,7 @@ def test_translation_rejects_outliers_and_recovers_compass_corrected_motion():
 
 
 def test_near_floor_motion_survives_many_distant_wall_features():
-    from src.robot_slam import floor_translation
+    from realtime_depth_app.src.robot_slam import floor_translation
     floor=np.array([[.28,-.15],[.32,.16],[.56,-.13],[.60,.14]])
     wall=np.column_stack((np.linspace(.9,1.3,40),np.linspace(-.4,.4,40)))
     delta=np.array([.008,-.003])
@@ -214,7 +214,7 @@ def test_small_drift_does_not_latch_stationary_alignment():
 
 
 def test_closed_loop_small_drift_is_corrected_without_stop_and_turn_cycles():
-    from src.robot_motion import CommandSmoother
+    from realtime_depth_app.src.robot_motion import CommandSmoother
     follower=PathFollower();smoother=CommandSmoother()
     pose=np.array([0.,.06,math.radians(12)])
     safe=Decision(.08,0.,'ADVANCE','clear');speeds=[]
@@ -333,7 +333,7 @@ def test_pose_graph_loop_constraint_corrects_accumulated_translation():
 
 def test_background_loop_correction_preserves_new_tracking_and_scans():
     import time
-    from src.robot_slam import AsyncMapOptimizer
+    from realtime_depth_app.src.robot_slam import AsyncMapOptimizer
     s=FloorSlam()
     s.keyframes=[{'pose':np.array([x,0.,0.])} for x in [0.,1.1,2.2]]
     s.edges=[(0,1,np.array([1.1,0]),1.),(1,2,np.array([1.1,0]),1.),(0,2,np.array([2.,0]),5.)]
@@ -400,7 +400,7 @@ def test_visual_frontend_tracks_rendered_metric_motion_and_stops_on_black_frame(
 
 def test_slam_export_serializes_numpy_visit_bin_coordinates(tmp_path):
     import json,time
-    from src.camera import LatestSlot
+    from realtime_depth_app.src.camera import LatestSlot
     worker=SlamWorker(LatestSlot())
     worker.planning.latest={'epoch':0,'plan_finished':time.monotonic(),
         'visits':{(np.int64(2),np.int64(-3)):np.int64(4)}}
@@ -411,7 +411,7 @@ def test_slam_export_serializes_numpy_visit_bin_coordinates(tmp_path):
 
 def test_slow_frontier_search_cannot_freeze_live_slam_revisions():
     import threading,time
-    from src.camera import LatestSlot
+    from realtime_depth_app.src.camera import LatestSlot
     started=threading.Event();release=threading.Event()
     frames=LatestSlot();worker=SlamWorker(frames)
     class LiveEngine(FloorSlam):
@@ -442,3 +442,17 @@ def test_relocalization_changes_remembered_view_if_first_view_does_not_recover()
     assert d.state=='RELOCALIZE' and d.angular==0
     d=p.decide(s,rs,safe,False,4.)
     assert d.state=='RELOCALIZE' and abs(d.angular)>0
+
+
+def test_alignment_precedes_translational_lookahead_but_never_authorizes_unsafe_translation():
+    from realtime_depth_app.src.robot_avoidance import Decision
+    safety=Decision(.065,0.,'ADVANCE','sensor band clear')
+    navigation=dict(grid=np.full((40,40),-1,np.int8),origin=[-1.,-1.],resolution=.05)
+    follower=PathFollower()
+    # Translation is unknown, but turning toward the route is an independent
+    # proposal still subject to the caller's sonar and supervisor sweep gates.
+    decision=follower.command([0.,0.,math.pi],[[0.,0.],[.5,0.]],[.5,0.],safety,navigation)
+    assert decision.state=='ALIGN'
+    assert decision.linear==0. and abs(decision.angular)<=.4
+    decision=follower.command([0.,0.,0.],[[0.,0.],[.5,0.]],[.5,0.],safety,navigation)
+    assert decision.state=='PLANNING' and decision.linear==decision.angular==0.

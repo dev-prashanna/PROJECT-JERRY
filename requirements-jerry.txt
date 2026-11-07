@@ -1,0 +1,3 @@
+# ROS 2 Jazzy and Gazebo Harmonic are supplied by the system installation.
+# Existing .venv-jerry contains the project's depth, OpenCV and AURA model dependencies.
+mcp==1.30.0

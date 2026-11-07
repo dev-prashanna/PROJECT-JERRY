@@ -1,0 +1,6 @@
+# Codex can start the MCP server, then call start_simulation explicitly.
+[mcp_servers.jerry_robot]
+command = "/bin/bash"
+args = ["/home/prashanna/Documents/PROJECT VBMD/simulation/run_robot_mcp.sh"]
+startup_timeout_sec = 20
+tool_timeout_sec = 120

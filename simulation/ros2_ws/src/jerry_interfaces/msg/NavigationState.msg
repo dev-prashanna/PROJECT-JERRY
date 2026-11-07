@@ -1,0 +1,16 @@
+string session_id
+uint64 epoch_id
+uint64 map_revision
+uint64 occupancy_revision
+builtin_interfaces/Time sensor_stamp
+builtin_interfaces/Time depth_stamp
+bool ready
+bool plan_ready
+bool capacity_reached
+float64 x
+float64 y
+float64 yaw
+float64 observed_m2
+uint32 completed_goals
+string phase
+string reason

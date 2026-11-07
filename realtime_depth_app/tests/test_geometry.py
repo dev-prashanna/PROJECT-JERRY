@@ -3,7 +3,7 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from src.geometry import CameraIntrinsics, GeometryError, calibrate_checkerboard, save_intrinsics, load_intrinsics
+from realtime_depth_app.src.geometry import CameraIntrinsics, GeometryError, calibrate_checkerboard, save_intrinsics, load_intrinsics
 
 
 def make_intrinsics() -> CameraIntrinsics:

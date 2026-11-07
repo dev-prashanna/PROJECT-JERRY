@@ -19,6 +19,7 @@ def beam_minimum(ranges,minimum,maximum):
 class GazeboAdapter(Node):
  def __init__(self):
   super().__init__('vbmd_gazebo_adapter')
+  self.declare_parameter('protected_motion',False);self.protected_motion=self.get_parameter('protected_motion').value;self.protected=None
   self.declare_parameter('autonomy',False);self.cache={};self.ranges={s:math.inf for s in SIDES};self.index=0
   self.command=Twist();self.last_command=-1e9;self.last_command_wall=-1e9;self.last_scan_wall={};self.avoid_direction=0.;self.avoid_start=0.
   self.imu_output=self.create_publisher(Imu,'/imu/data_raw',qos_profile_sensor_data)
@@ -26,8 +27,12 @@ class GazeboAdapter(Node):
   self.output=self.create_publisher(Twist,'/sim/cmd_vel_safe',10)
   self.pubs={s:self.create_publisher(Range,'/ultrasonic/'+s,10) for s in SIDES}
   self.subs=[self.create_subscription(LaserScan,'/sim/sonar_rays/'+s,lambda m,side=s:self.scan(side,m),qos_profile_sensor_data) for s in SIDES]
-  self.create_subscription(Twist,'/cmd_vel',self.receive,10)
-  self.create_subscription(Int32,'/sim/keyboard',self.keyboard,10)
+  if self.protected_motion:
+   from jerry.adapter import ProtectedActuator
+   self.protected=ProtectedActuator(self)
+  else:
+   self.create_subscription(Twist,'/cmd_vel',self.receive,10)
+   self.create_subscription(Int32,'/sim/keyboard',self.keyboard,10)
   self.create_timer(.06,self.publish_range);self.create_timer(.02,self.drive,clock=RosClock(clock_type=ClockType.STEADY_TIME))
   self.get_logger().info('Gazebo adapter ready: one RGB camera + four ultrasound Range topics; no odometry or lidar scan exposed to navigation.')
  def imu_raw(self,msg):
@@ -63,7 +68,10 @@ class GazeboAdapter(Node):
   # Stop if camera/range simulation stalls or the current data becomes stale.
   now=self.seconds()
   if any(now-(m.header.stamp.sec+m.header.stamp.nanosec*1e-9)>.30 for m in self.cache.values()):return 0.,0.
+  if any(math.isnan(v) or v==-math.inf or (math.isfinite(v) and v<.02) for v in self.ranges.values()):return 0.,0.
   f=self.ranges['front'];l=self.ranges['left'];r=self.ranges['right']
+  if min(l,r)<.10:return 0.,0.
+  if (self.avoid_direction or f<.30) and min(self.ranges.values())<.18:return 0.,0.
   if self.avoid_direction:
    if f>.40 and now-self.avoid_start>1.:self.avoid_direction=0.
    else:return 0.,self.avoid_direction
@@ -73,6 +81,8 @@ class GazeboAdapter(Node):
   if r<.13:return .035,.6
   return .08,0.
  def drive(self):
+  if getattr(self,'protected',None) is not None:
+   self.output.publish(self.protected.output());return
   if self.get_parameter('autonomy').value:
    v,w=self.reactive();m=Twist();m.linear.x=v;m.angular.z=w
   else:m=self.command if 0<=self.seconds()-self.last_command<.5 and time.monotonic()-self.last_command_wall<.5 else Twist()

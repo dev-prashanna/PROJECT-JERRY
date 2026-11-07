@@ -1,7 +1,7 @@
 """Robot policy invariants: depth convention, conservative gates and turn selection."""
 import math
 import numpy as np
-from src.robot_avoidance import analyze_depth,AvoidancePolicy,RangeReading,SIDES
+from realtime_depth_app.src.robot_avoidance import analyze_depth,AvoidancePolicy,RangeReading,SIDES
 
 def ranges(**changes):
  out={s:RangeReading(1.,.05,.05) for s in SIDES}

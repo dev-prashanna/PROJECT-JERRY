@@ -1,0 +1,18 @@
+string session_id
+uint64 epoch_id
+uint64 generation
+string task_id
+string kind
+string description
+float64 maximum_wall_s
+bool target_valid
+float64 target_x
+float64 target_y
+uint64 map_revision
+---
+string status
+string reason
+string[] evidence_ids
+---
+string phase
+string reason

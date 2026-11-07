@@ -2,8 +2,8 @@ from types import SimpleNamespace
 import time
 import numpy as np
 
-from src.camera import LatestSlot
-from src.robot_depth_worker import DepthWorker
+from realtime_depth_app.src.camera import LatestSlot
+from realtime_depth_app.src.robot_depth_worker import DepthWorker
 
 
 class FakeDepthEngine:

@@ -103,7 +103,7 @@ class DepthEngine:
 
         self.model.to(self.device)
         if self._dtype is not None and not self._use_autocast:
-            self.model = self.model.half()
+            self.model = self.model.to(dtype=self._dtype)
         self.model.eval()
 
         self.estimation_type = self._resolve_estimation_type()
@@ -140,7 +140,7 @@ class DepthEngine:
     def _to_device(self, pixel_values: torch.Tensor) -> torch.Tensor:
         pixel_values = pixel_values.to(self.device, non_blocking=True)
         if self._dtype is not None and not self._use_autocast:
-            pixel_values = pixel_values.half()
+            pixel_values = pixel_values.to(dtype=self._dtype)
         return pixel_values
 
     def preprocess(self, frame_bgr: np.ndarray) -> torch.Tensor:

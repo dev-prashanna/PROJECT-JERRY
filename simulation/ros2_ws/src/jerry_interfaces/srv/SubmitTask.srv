@@ -1,0 +1,18 @@
+string session_id
+uint64 expected_generation
+string request_id
+string kind
+string description
+float64 maximum_active_s
+float64 maximum_wall_s
+float64 maximum_distance_m
+bool target_valid
+float64 target_x
+float64 target_y
+uint64 map_revision
+---
+bool accepted
+string task_id
+string status
+string reason
+uint64 generation

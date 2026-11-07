@@ -4,8 +4,8 @@ import numpy as np
 import pytest
 import torch
 
-from src.config import ConfigError, validate_config
-from src.depth_engine import DepthEngine, resolve_device
+from realtime_depth_app.src.config import ConfigError, validate_config
+from realtime_depth_app.src.depth_engine import DepthEngine, resolve_device
 
 
 def test_device_resolution():

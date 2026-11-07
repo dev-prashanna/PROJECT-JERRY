@@ -10,6 +10,12 @@ Complete hardware, firmware, perception, SLAM, exploration and interface details
 
 ---
 
+## Control Jerry from Codex
+
+The integrated Gazebo runtime now exposes a local MCP server. Codex can inspect the robot camera/map, admit bounded exploration, stop, query tasks and memory, and use local Whisper/Kokoro speech. The robot runtime makes no separate LLM planning calls.
+
+See [Jerry MCP setup and tools](docs/JERRY_MCP.md). The server launcher is `simulation/run_robot_mcp.sh`; `simulation/check_robot_mcp.sh` validates the MCP → ROS → Gazebo path. Semantic object navigation and physical hardware remain gated capabilities.
+
 ## Gallery
 
 | | |

@@ -176,3 +176,30 @@ def test_fake_stt_roundtrip():
 
     empty = FakeSTT(text="")
     assert empty.transcribe(np.zeros(0, dtype=np.float32), 16000).ok is False
+
+
+def test_offline_whisper_resolves_existing_hugging_face_snapshot(tmp_path, monkeypatch):
+    """A cached named checkpoint must work without a fabricated <cache>/<name> folder."""
+    from dataclasses import replace
+    import faster_whisper
+    import faster_whisper.utils
+    from config.settings import STTSettings
+    from src.speech.whisper_engine import WhisperEngine
+    snapshot = tmp_path/'snapshots'/'revision'
+    snapshot.mkdir(parents=True)
+    (snapshot/'model.bin').write_bytes(b'fake-checkpoint')
+    observed = {}
+    def resolve(name, **kwargs):
+        observed['resolve'] = (name,kwargs)
+        return str(snapshot)
+    def model(source, **kwargs):
+        observed['load'] = (source,kwargs)
+        return object()
+    monkeypatch.setattr(faster_whisper.utils,'download_model',resolve)
+    monkeypatch.setattr(faster_whisper,'WhisperModel',model)
+    settings = replace(STTSettings(),device='cpu',allow_download=False,download_root=str(tmp_path))
+    info = WhisperEngine(settings).load()
+    assert info['local_path'] == str(snapshot)
+    assert observed['resolve'][1]['local_files_only'] is True
+    assert observed['load'][0] == str(snapshot)
+    assert observed['load'][1]['local_files_only'] is True

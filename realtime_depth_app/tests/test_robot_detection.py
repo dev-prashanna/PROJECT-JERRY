@@ -3,8 +3,8 @@ import threading
 import time
 import numpy as np
 
-from src.camera import LatestSlot
-from src.robot_detection import DetectionWorker,ObjectBox,ObjectPrediction,annotate_objects,decode_boxes
+from realtime_depth_app.src.camera import LatestSlot
+from realtime_depth_app.src.robot_detection import DetectionWorker,ObjectBox,ObjectPrediction,annotate_objects,decode_boxes
 
 
 class Tensor:

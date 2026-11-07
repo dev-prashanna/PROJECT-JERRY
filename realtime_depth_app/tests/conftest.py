@@ -10,7 +10,9 @@ APP_ROOT = Path(__file__).resolve().parents[1]
 if str(APP_ROOT) not in sys.path:
     sys.path.insert(0, str(APP_ROOT))
 
-from src.config import load_config  # noqa: E402
+sys.path.append(str(APP_ROOT.parent))
+
+from realtime_depth_app.src.config import load_config  # noqa: E402
 
 SAMPLE_IMAGE = APP_ROOT.parent / "assets" / "sample_frame.jpeg"
 
@@ -32,7 +34,7 @@ def sample_image():
 
 @pytest.fixture(scope="session")
 def engine():
-    from src.depth_engine import DepthEngine
+    from realtime_depth_app.src.depth_engine import DepthEngine
 
     e = DepthEngine(load_config())
     e.warmup(1)

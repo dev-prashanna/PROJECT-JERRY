@@ -75,29 +75,33 @@ class DepthWorker(threading.Thread):
         self.process=self.context.Process(target=model_process,
             args=(self.cfg,self.inputs,self.outputs,self.busy,self.child_stop,self.engine_factory),
             name='jerry-depth-model',daemon=True)
-        pending={};seq=0
+        pending={};seq=0;model_ready=False
         try:
             self.process.start()
             while not self.stop_event.is_set():
                 while True:
                     try:message=self.outputs.get_nowait()
                     except queue.Empty:break
-                    if message[0]=='ready':self.status='Model ready on '+message[1]
+                    if message[0]=='ready':
+                        self.status='Model ready on '+message[1];model_ready=True
                     elif message[0]=='error':
                         self.error=message[1];self.status='Depth inference failed';return
                     elif message[0]=='prediction':
                         _,identity,depth,inference_ms,device,preprocess_ms,postprocess_ms,convention=message
-                        packet=pending.get(identity)
+                        packet=pending.pop(identity,None)
                         if packet is None:continue
                         self.status='Model ready on '+device
                         view=analyze_depth(depth,convention)
                         self.results.put(Prediction(packet,depth,view,inference_ms,device,time.monotonic(),preprocess_ms,postprocess_ms))
                         self.processed+=1
-                seq,packet=self.frames.wait_new(seq,.01)
-                if packet is not None:
-                    pending[packet.id]=packet
-                    pending={key:value for key,value in pending.items() if key>=packet.id-12}
-                    put_latest(self.inputs,(packet.id,packet.bgr))
+                # Keep the one in-flight source alive; unread capture frames stay in the latest slot.
+                if model_ready and not pending:
+                    seq,packet=self.frames.wait_new(seq,.01)
+                    if packet is not None:
+                        pending[packet.id]=packet
+                        put_latest(self.inputs,(packet.id,packet.bgr))
+                else:
+                    self.stop_event.wait(.005)
                 if self.process.exitcode is not None:
                     if self.error is None:
                         self.error=f'Depth process exited ({self.process.exitcode})'

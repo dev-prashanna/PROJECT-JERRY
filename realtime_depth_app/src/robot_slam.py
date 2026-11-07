@@ -107,15 +107,19 @@ class PathFollower:
             safe=(grid==0)&~ndimage.binary_dilation(grid==100,structure=xx*xx+yy*yy<=radius*radius)
             safe &= ndimage.distance_transform_edt(grid==0)*resolution>=.11
         target=None
+        alignment_target=None
         for lookahead in [.40,.32,.25,.20,.15,.10,.07]:
             along=min(cumulative[-1],progress+lookahead)
             index=min(len(lengths)-1,max(0,int(np.searchsorted(cumulative,along,side='right')-1)))
             point=points[index]+vectors[index]*np.clip((along-cumulative[index])/max(lengths[index],1e-10),0.,1.)
+            if alignment_target is None:alignment_target=point
             if safe is not None:
                 if not segment_clear(pose[:2],point,safe,np.asarray(navigation['origin']),resolution):continue
             target=point;break
-        if target is None:return Decision(0.,0.,'PLANNING','Destination retained; waiting for safe route clearance')
-        delta=target-pose[:2]
+        # Rotation can establish the view needed for a translational lookahead.
+        # Do not deadlock a robot facing away from its path by demanding that
+        # the translational lookahead pass before checking in-place alignment.
+        delta=(target if target is not None else alignment_target)-pose[:2]
         error=angle(math.atan2(delta[1],delta[0])-pose[2])
         tangent=vectors[nearest]
         route_error=angle(math.atan2(tangent[1],tangent[0])-pose[2])
@@ -125,6 +129,7 @@ class PathFollower:
         elif abs(error)<.40 or abs(route_error)<.45:self.aligning=False
         if self.aligning:
             return Decision(0.,float(np.clip(error*1.2,-.40,.40)),'ALIGN','Aligning with the route to the committed destination')
+        if target is None:return Decision(0.,0.,'PLANNING','Destination retained; waiting for safe route clearance')
         remaining=math.dist(pose[:2],goal)
         approach=.065
         if cumulative[-1]-progress<.5:
@@ -638,6 +643,9 @@ class FloorSlam:
         self.orb = cv2.ORB_create(nfeatures=1600, edgeThreshold=10, fastThreshold=8)
         self.matcher = cv2.BFMatcher(cv2.NORM_HAMMING)
         self.optimizer=None
+        self.map_revision=0
+        self.correction_guard=None
+        self.pending_correction=None
 
     def features(self, gray, calibration, roll, pitch):
         mask = np.zeros_like(gray)
@@ -707,6 +715,12 @@ class FloorSlam:
         self.apply_correction(corrections,occupancy,len(self.scans))
 
     def apply_correction(self,corrections,occupancy,scan_count):
+        if self.correction_guard is not None and not self.correction_guard():
+            self.pending_correction=(corrections,occupancy,scan_count)
+            return
+        self.pending_correction=None
+        self.map_revision+=1
+        self.planner=FrontierPlanner()
         self.pose[:2] += corrections[-1]
         for i, k in enumerate(self.keyframes):
             k['pose'][:2] += corrections[min(i,len(corrections)-1)]
@@ -724,8 +738,11 @@ class FloorSlam:
             # Discard an old-epoch correction before resetting its coordinates.
             if optimizer is not None:
                 optimizer.stop();optimizer=AsyncMapOptimizer();optimizer.start()
-            self.__init__();self.optimizer=optimizer
-        if self.optimizer is not None:self.optimizer.collect(self)
+            correction_guard=self.correction_guard
+            self.__init__();self.optimizer=optimizer;self.correction_guard=correction_guard
+        if self.pending_correction is not None:
+            self.apply_correction(*self.pending_correction)
+        if self.optimizer is not None and self.pending_correction is None:self.optimizer.collect(self)
         roll, pitch, yaw, heading_ready = attitude
         if not heading_ready:
             self.tracking = False;self.good_streak=0; self.status = 'IMU/compass stale; SLAM stopped'
@@ -837,7 +854,7 @@ class FloorSlam:
         for side, (value, maximum, measurement_stamp) in ranges.items():
             if -.05 <= stamp-measurement_stamp <= .25 and measurement_stamp > self.last_scan_stamp.get(side, -math.inf):
                 fresh[side] = (value, maximum); self.last_scan_stamp[side] = measurement_stamp
-        if fresh:
+        if fresh and len(self.scans)<20000:
             self.map.update(self.pose, fresh)
             self.scans.append({'pose': self.pose.copy(), 'ranges': fresh, 'keyframe': len(self.keyframes)-1})
         if plan and stamp-self.last_plan > 1.:
@@ -846,6 +863,8 @@ class FloorSlam:
     def snapshot(self):
         grid = self.map.grid()
         return {'pose': self.pose.tolist(), 'tracking': self.tracking, 'status': self.status,
+                'map_revision':self.map_revision,'correction_pending':self.pending_correction is not None,
+                'capacity_reached':len(self.scans)>=20000 or len(self.keyframes)>=300 or not self.map.inside(self.map.cell(self.pose[:2])),
                 'last_good_stamp':self.last_good_stamp,'good_streak':self.good_streak,
                 'inliers': self.inliers, 'keyframes': len(self.keyframes), 'loop_closures': self.loop_closures,
                 'observed_m2': float((grid >= 0).sum()*self.map.resolution**2),
@@ -906,7 +925,7 @@ class SlamWorker(threading.Thread):
         self.error = None
         self.latest = self.engine.snapshot()
         self.finished = -math.inf
-        self.planning=PlanningWorker();self.epoch=0;self.processed=0;self.last_plan_request=-math.inf
+        self.planning=PlanningWorker();self.epoch=0;self.last_map_revision=0;self.processed=0;self.last_plan_request=-math.inf
 
     def run(self):
         seq = 0
@@ -923,6 +942,8 @@ class SlamWorker(threading.Thread):
                 try:self.engine.process(*item,plan=False)
                 except (cv2.error,ValueError):
                     self.engine.tracking=False;self.engine.good_streak=0;self.engine.status='Bad camera frame; waiting for the next frame'
+                if self.engine.map_revision!=self.last_map_revision:
+                    self.epoch+=1;self.last_map_revision=self.engine.map_revision;self.last_plan_request=-math.inf
                 self.processed+=1
                 with self.lock:
                     self.latest = self.engine.snapshot();self.latest['epoch']=self.epoch

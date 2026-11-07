@@ -1,0 +1,10 @@
+string session_id
+uint64 epoch_id
+uint64 generation
+string task_id
+string kind
+string status
+string reason
+float64 active_seconds
+float64 travelled_m
+bool motion_enabled

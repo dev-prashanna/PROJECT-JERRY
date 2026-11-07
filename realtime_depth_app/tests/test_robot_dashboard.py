@@ -9,11 +9,11 @@ from PySide6 import QtWidgets
 
 from robot_live import RobotNode
 from robot_window import RobotWindow
-from src.robot_avoidance import Decision
-from src.robot_attitude import AttitudeFilter
-from src.robot_slam import FloorSlam
+from realtime_depth_app.src.robot_avoidance import Decision
+from realtime_depth_app.src.robot_attitude import AttitudeFilter
+from realtime_depth_app.src.robot_slam import FloorSlam
 from robot_map_view import occupancy_path,scene_point,frontier_markers
-from src.robot_detection import ObjectBox,ObjectPrediction
+from realtime_depth_app.src.robot_detection import ObjectBox,ObjectPrediction
 
 
 def arm_fixture(ready=False):

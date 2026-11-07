@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from src.config import ConfigError, load_config, validate_config, AppConfig, ModelConfig, MeasurementConfig
+from realtime_depth_app.src.config import ConfigError, load_config, validate_config, AppConfig, ModelConfig, MeasurementConfig
 
 
 def test_default_config_loads(cfg):

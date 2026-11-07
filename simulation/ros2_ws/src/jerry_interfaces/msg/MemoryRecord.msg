@@ -1,0 +1,9 @@
+string record_id
+string kind
+string task_id
+string text
+string evidence_id
+string session_id
+uint64 epoch_id
+uint64 map_revision
+string created_at

@@ -1,6 +1,6 @@
 import pytest
-from src.robot_avoidance import Decision
-from src.robot_motion import CommandSmoother
+from realtime_depth_app.src.robot_avoidance import Decision
+from realtime_depth_app.src.robot_motion import CommandSmoother
 
 
 def test_command_acceleration_and_steering_changes_are_bounded():

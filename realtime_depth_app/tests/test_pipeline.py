@@ -6,9 +6,9 @@ from dataclasses import replace
 import numpy as np
 import pytest
 
-from src.camera import LatestSlot, Frame
-from src.pipeline import InferenceWorker, Pipeline
-from src.temporal_filter import DepthSmoother
+from realtime_depth_app.src.camera import LatestSlot, Frame
+from realtime_depth_app.src.pipeline import InferenceWorker, Pipeline
+from realtime_depth_app.src.temporal_filter import DepthSmoother
 
 
 @pytest.fixture()
@@ -78,19 +78,30 @@ def test_pipeline_shutdown_is_clean(image_cfg, engine):
     assert not pipeline.inference.is_alive()
 
 
-def test_frame_skip_limits_processing(image_cfg, engine):
-    cfg = replace(image_cfg, runtime=replace(image_cfg.runtime, frame_skip=3))
-    pipeline = Pipeline(cfg, engine, DepthSmoother(False, 0.5, 1))
-    pipeline.start()
-    try:
-        deadline = time.time() + 20
-        while time.time() < deadline and pipeline.inference.stats.processed < 5:
-            time.sleep(0.1)
-        snap = pipeline.snapshot()
-        assert snap["skipped"] > 0
-        assert snap["processed"] < snap["captured"]
-    finally:
-        pipeline.stop()
+def test_frame_skip_limits_processing():
+    # Deliver every ID explicitly; a real GPU may already skip IDs through
+    # latest-frame replacement before the frame_skip branch ever runs.
+    from types import SimpleNamespace
+    class ControlledFrames:
+        closed = False
+        def __init__(self):self.ids=iter(range(1,8))
+        def wait_new(self,seq,timeout):
+            identity=next(self.ids,None)
+            if identity is None:
+                self.closed=True
+                return seq,None
+            return seq+1,Frame(identity,np.zeros((2,2,3),np.uint8),0.)
+        def close(self):self.closed=True
+    processed=[]
+    def infer(image,frame_id,t_capture):
+        processed.append(frame_id)
+        return SimpleNamespace(frame_id=frame_id,depth=np.zeros((2,2)))
+    worker=InferenceWorker(SimpleNamespace(infer=infer),ControlledFrames(),LatestSlot(),
+                           DepthSmoother(False,.5,1),frame_skip=3)
+    worker.run()
+    assert processed==[1,4,7]
+    assert worker.stats.processed==3
+    assert worker.stats.skipped==4
 
 
 def test_stale_frames_are_dropped_not_queued(image_cfg, engine):
@@ -109,7 +120,7 @@ def test_stale_frames_are_dropped_not_queued(image_cfg, engine):
 def test_smoothing_state_changes_output(image_cfg, engine):
     smooth = DepthSmoother(True, 0.3, 1)
     frame_slot: LatestSlot[Frame] = LatestSlot()
-    from src.camera import LatestSlot as LS
+    from realtime_depth_app.src.camera import LatestSlot as LS
 
     depth_slot: LS = LS()
     worker = InferenceWorker(engine, frame_slot, depth_slot, smooth, frame_skip=1)

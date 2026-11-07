@@ -3,7 +3,7 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from src.calibration import (
+from realtime_depth_app.src.calibration import (
     CalibrationError,
     Sample,
     fit_profile,

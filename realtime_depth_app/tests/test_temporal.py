@@ -3,7 +3,7 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from src.temporal_filter import DepthSmoother, EmaFilter, RangeEMA, ScalarEMA, TemporalMedian
+from realtime_depth_app.src.temporal_filter import DepthSmoother, EmaFilter, RangeEMA, ScalarEMA, TemporalMedian
 
 
 def test_ema_first_frame_initializes():

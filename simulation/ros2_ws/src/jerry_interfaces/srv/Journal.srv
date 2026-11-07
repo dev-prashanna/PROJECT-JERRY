@@ -1,0 +1,15 @@
+string operation
+string request_id
+string kind
+string task_id
+string text
+string evidence_id
+string session_id
+uint64 epoch_id
+uint64 map_revision
+uint32 limit
+---
+bool accepted
+string reason
+string record_id
+jerry_interfaces/MemoryRecord[] records

@@ -6,16 +6,15 @@ from pathlib import Path
 from dataclasses import dataclass
 from collections import deque
 import numpy as np
-# Isolate the existing depth app's relative imports from the repository's unrelated src package.
-backend=types.ModuleType('vbmd_depth_backend');backend.__path__=[str(Path(__file__).resolve().parent/'src')];sys.modules['vbmd_depth_backend']=backend
-from vbmd_depth_backend.config import load_config,validate_config
-from vbmd_depth_backend.camera import LatestSlot
-from vbmd_depth_backend.robot_avoidance import RangeReading,analyze_depth,AvoidancePolicy,Decision,SIDES
-from vbmd_depth_backend.robot_attitude import AttitudeFilter
-from vbmd_depth_backend.robot_slam import Calibration,SlamWorker,CuriosityPolicy,localization_health
-from vbmd_depth_backend.robot_motion import CommandSmoother
-from vbmd_depth_backend.robot_detection import DetectionWorker,annotate_objects
-from vbmd_depth_backend.robot_depth_worker import DepthWorker,Prediction
+sys.path.append(str(Path(__file__).resolve().parents[1]))
+from realtime_depth_app.src.config import load_config,validate_config
+from realtime_depth_app.src.camera import LatestSlot
+from realtime_depth_app.src.robot_avoidance import RangeReading,analyze_depth,AvoidancePolicy,Decision,SIDES
+from realtime_depth_app.src.robot_attitude import AttitudeFilter
+from realtime_depth_app.src.robot_slam import Calibration,SlamWorker,CuriosityPolicy,localization_health
+from realtime_depth_app.src.robot_motion import CommandSmoother
+from realtime_depth_app.src.robot_detection import DetectionWorker,annotate_objects
+from realtime_depth_app.src.robot_depth_worker import DepthWorker,Prediction
 import rclpy
 from rclpy.node import Node
 from rclpy.qos import qos_profile_sensor_data
@@ -44,7 +43,7 @@ class RobotNode(Node):
         super().__init__('vbmd_depth_avoidance');self.frames=frames;self.results=results;self.worker=worker
         self.lock=threading.RLock();self.sonars={};self.frame=None;self.frame_count=0;self.sim_time=None;self.clock_received=-1e9
         self.last_control_wall=time.monotonic()
-        self.world_control=self.create_client(ControlWorld,'/world/vbmd_lab/control');self.world_control_status=''
+        self.world_control=self.create_client(ControlWorld,'/world/'+os.environ.get('JERRY_WORLD_NAME','vbmd_lab')+'/control');self.world_control_status=''
         self.active=False;self.arming=False;self.auto_pending=auto;self.spin_error=None;self.arm_generation=0;self.parameter_client=AsyncParameterClient(self,'/vbmd_gazebo_adapter');self.prediction=None;self.policy=AvoidancePolicy();self.decision=Decision(0.,0.,'MONITOR','Avoidance not armed')
         self.monitor_reason='Preview only - press Start movement'
         self.start_requested=auto;self.arm_started=-1e9;self.arm_retry_at=0.
@@ -301,7 +300,7 @@ def main():
                 cv2.imwrite(str(args.output/'objects.png'),annotate_objects(result))
         if p:
             import cv2
-            from vbmd_depth_backend.robot_slam import render_map
+            from realtime_depth_app.src.robot_slam import render_map
             cv2.imwrite(str(args.output/'local_map.png'),render_map(slam.snapshot()));cv2.imwrite(str(args.output/'rgb.png'),p.packet.bgr);cv2.imwrite(str(args.output/'relative_depth.png'),cv2.applyColorMap(np.uint8(np.clip(p.view.proximity,0,1)*255),cv2.COLORMAP_TURBO))
     try:
         if args.headless:

@@ -31,7 +31,7 @@ class CommandSmoother:
         rate=self.acceleration if abs(target)>abs(self.linear) else self.deceleration
         self.linear=self.approach(self.linear,target,rate*dt)
         if decision.state=='TRACKING_BRIDGE':self.linear=min(self.linear,.020)
-        if decision.state in ['TURN','RELOCALIZE']:
+        if decision.state in ['TURN','RELOCALIZE','ALIGN','RESCAN','LOOK_AROUND','REORIENT']:
             # A local obstacle override or localization recovery never drifts forward.
             self.linear=0.
         self.angular=self.approach(self.angular,decision.angular,self.yaw_acceleration*dt)

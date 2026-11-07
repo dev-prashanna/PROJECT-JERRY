@@ -1,0 +1,16 @@
+string operation
+string session_id
+uint64 epoch_id
+string owner_id
+string task_id
+uint64 generation
+uint64 map_revision
+float64 maximum_validity_s
+---
+bool accepted
+string reason
+string session_id
+uint64 epoch_id
+uint64 generation
+string token
+float64 valid_for_s

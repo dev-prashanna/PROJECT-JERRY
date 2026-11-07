@@ -119,12 +119,22 @@ class WhisperEngine:
 
             download_root = Path(self.settings.download_root)
             download_root.mkdir(parents=True, exist_ok=True)
-            local = download_root / self.settings.model.replace("/", "--")
-            if not local.exists() and not self.settings.allow_download:
-                raise ModelNotFoundError(
-                    f"whisper weights not found at {local}",
-                    hint="Set STT_ALLOW_DOWNLOAD=1 or place the model there.",
-                )
+            explicit = Path(self.settings.model).expanduser()
+            local = explicit if (explicit / "model.bin").is_file() else download_root / self.settings.model.replace("/", "--")
+            if not (local / "model.bin").is_file():
+                # faster-whisper stores named models in Hugging Face snapshots,
+                # not download_root/<model>. Resolve that cache without network access
+                # when downloads are disabled.
+                try:
+                    from faster_whisper.utils import download_model
+                    local = Path(download_model(self.settings.model, cache_dir=str(download_root),
+                                                local_files_only=not self.settings.allow_download))
+                except Exception as exc:
+                    raise ModelNotFoundError(
+                        f"Whisper checkpoint '{self.settings.model}' unavailable in {download_root}",
+                        hint="Populate the local Hugging Face cache or configure an explicit checkpoint directory.",
+                        cause=exc,
+                    ) from exc
 
             started = time.perf_counter()
             if device == "cuda":
@@ -142,10 +152,11 @@ class WhisperEngine:
             )
             try:
                 model = WhisperModel(
-                    self.settings.model,
+                    str(local),
                     device=device,
                     compute_type=compute,
                     download_root=str(download_root),
+                    local_files_only=not self.settings.allow_download,
                 )
             except Exception as exc:  # noqa: BLE001
                 self._last_error = str(exc)

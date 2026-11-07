@@ -57,3 +57,7 @@ Thumbs.db
 simulation/ros2_ws/build/
 simulation/ros2_ws/install/
 simulation/ros2_ws/log/
+
+# Integrated Jerry local state and build logs
+log/
+simulation/artifacts/jerry/
